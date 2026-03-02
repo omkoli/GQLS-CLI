@@ -1,0 +1,100 @@
+version: 2
+
+project_name: gqls
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: gqls
+    main: ./cmd/gqls
+    binary: gqls
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+
+archives:
+  - id: gqls
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+homebrew_casks:
+  - name: gqls
+    repository:
+      owner: omkoli
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: "https://github.com/omkoli/GQLS-CLI"
+    description: "GraphQL security scanner — find what generic scanners miss"
+    license: "MIT"
+
+# dockers_v2 correct syntax for GoReleaser 2.14.1
+dockers_v2:
+  - id: gqls
+    ids:
+      - gqls
+    dockerfile: Dockerfile
+    images:
+      - "ghcr.io/omkoli/gqls"
+    tags:
+      - "{{ .Tag }}"
+      - "{{ .Major }}"
+      - "latest"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: gqls
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.source: "https://github.com/omkoli/GQLS-CLI"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+
+release:
+  github:
+    owner: omkoli
+    name: GQLS-CLI
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"
