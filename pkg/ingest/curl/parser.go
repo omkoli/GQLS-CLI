@@ -241,9 +241,17 @@ func normalizeSmartQuotes(s string) string {
 // handles the following escape sequences that can appear inline (not just
 // at line endings):
 //
-//	^^ → ^   (escaped caret: literal caret character)
-//	^" → "   (escaped double quote: literal double quote character)
-//	^' → '   (escaped single quote: literal single quote character)
+//	^^" → \"  (escaped caret with quote: converts to backslash-escaped quote for tokenizer)
+//	^^' → \'  (escaped caret with quote: converts to backslash-escaped quote for tokenizer)
+//	^^ → ^    (escaped caret: literal caret character)
+//	^" → "    (escaped double quote: literal double quote character)
+//	^' → '    (escaped single quote: literal single quote character)
+//	^{ → {    (escaped brace: literal brace character)
+//	^} → }    (escaped brace: literal brace character)
+//
+// The ^^" and ^^' sequences are converted to \" and \' respectively because
+// they appear inside double-quoted strings and need to be escaped for the
+// tokenizer to properly handle them as literal chars inside the string.
 //
 // This normalization allows curl commands copied from Windows browsers to be
 // parsed correctly, as browser developer tools often escape quotes and carets
@@ -253,6 +261,19 @@ func normalizeWindowsCMDEscapes(s string) string {
 	i := 0
 	for i < len(s) {
 		if s[i] == '^' && i+1 < len(s) {
+			// Check for three-character sequence ^^" → \" for tokenizer compatibility
+			if s[i+1] == '^' && i+2 < len(s) && s[i+2] == '"' {
+				result.WriteString(`\"`)
+				i += 3
+				continue
+			}
+			// Check for three-character sequence ^^' → \' for tokenizer compatibility
+			if s[i+1] == '^' && i+2 < len(s) && s[i+2] == '\'' {
+				result.WriteString(`\'`)
+				i += 3
+				continue
+			}
+
 			next := s[i+1]
 			switch next {
 			case '^':
@@ -266,6 +287,14 @@ func normalizeWindowsCMDEscapes(s string) string {
 			case '\'':
 				// ^' becomes '
 				result.WriteByte('\'')
+				i += 2
+			case '{':
+				// ^{ becomes {
+				result.WriteByte('{')
+				i += 2
+			case '}':
+				// ^} becomes }
+				result.WriteByte('}')
 				i += 2
 			default:
 				// Not a recognized escape sequence; keep both characters

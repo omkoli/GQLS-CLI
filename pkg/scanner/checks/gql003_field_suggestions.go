@@ -38,7 +38,39 @@ func (c *fieldSuggestionsCheck) Severity() Severity   { return MEDIUM }
 func (c *fieldSuggestionsCheck) RequiresSchema() bool { return false }
 
 func (c *fieldSuggestionsCheck) Run(ctx context.Context, cc *CheckContext) (CheckResult, error) {
-	result := CheckResult{CheckID: c.ID(), Ran: true}
+	result := CheckResult{CheckID: c.ID()}
+
+	// First, check if introspection is enabled.
+	// If it is, skip this check since GQL-001 already covers that case.
+	const probeQuery = `{"query":"{ __schema { queryType { name } } }"}`
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cc.Target,
+		bytes.NewBufferString(probeQuery))
+	if err != nil {
+		result.Error = err
+		return result, nil
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := cc.ProbeClient().Do(req)
+	if err != nil {
+		result.Error = err
+		return result, nil
+	}
+
+	var parsed struct {
+		Data struct {
+			Schema *json.RawMessage `json:"__schema"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(resp.Body, &parsed); err == nil && parsed.Data.Schema != nil {
+		// Introspection is enabled; skip this check
+		result.Skipped = true
+		result.SkipReason = "Introspection is enabled on this endpoint. GQL-001 already covers full schema exposure via introspection, making GQL-003 (field suggestion hints) redundant."
+		return result, nil
+	}
+
+	// Introspection is disabled; proceed with the field suggestions check.
+	result.Ran = true
 
 	// Probe with typo queries and collect any field suggestions returned in errors.
 	discovered, passProbes := c.harvestSuggestions(ctx, cc)

@@ -358,8 +358,8 @@ func TestNormalizeCurlInput_WindowsCMDEscapedCarets(t *testing.T) {
 
 	got, err := curl.NormalizeCurlInput(input)
 	require.NoError(t, err)
-	// After normalization, ^^ should become ^
-	assert.Contains(t, got, `"Not:A-Brand";v="99"`)
+	// After normalization, ^^" becomes \" for tokenizer compatibility
+	assert.Contains(t, got, `\"Not:A-Brand\";v=\"99\"`)
 	assert.NotContains(t, got, `^^"`)
 }
 
@@ -379,7 +379,7 @@ func TestNormalizeCurlInput_ComplexWindowsCMDEscapes(t *testing.T) {
 	// Verify that all escape sequences are resolved
 	assert.Contains(t, got, `"https://api.escuelajs.co/graphql"`)
 	assert.Contains(t, got, `"accept: application/json"`)
-	assert.Contains(t, got, `"Not:A-Brand";v="99"`)
+	assert.Contains(t, got, `\"Not:A-Brand\";v=\"99\"`) // ^^" becomes \" for tokenizer
 	assert.NotContains(t, got, `^"`)
 	assert.NotContains(t, got, `^^"`)
 
@@ -505,7 +505,7 @@ func TestParse_ANSICQuotedBackslash(t *testing.T) {
 
 // TestParse_ANSICQuotedEscapedQuote verifies that \" in ANSI-C strings becomes a double quote.
 func TestParse_ANSICQuotedEscapedQuote(t *testing.T) {
-	cmd := `curl https://api.example.com -d $'{"msg":"Say \\"Hello\\""}'`
+	cmd := `curl https://api.example.com -d $'{"msg":"Say \"Hello\""}'`
 
 	pr, err := curl.Parse(cmd)
 	require.NoError(t, err)

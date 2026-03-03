@@ -52,7 +52,11 @@ func (p *checkProgress) close() {
 	if !p.enabled {
 		return
 	}
-	_, _ = fmt.Fprint(p.out, "\n")
+	percent := 0
+	if p.total > 0 {
+		percent = p.done * 100 / p.total
+	}
+	_, _ = fmt.Fprintf(p.out, "\rChecks %d%% (%d/%d checks) - complete\n", percent, p.done, p.total)
 	p.flush()
 }
 
