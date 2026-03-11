@@ -1,50 +1,32 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 version: 2
-
-project_name: gqls
 
 before:
   hooks:
     - go mod tidy
-    - go test ./...
 
 builds:
-  - id: gqls
-    main: ./cmd/gqls
-    binary: gqls
-    env:
+  - env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
+    binary: gqls
     ldflags:
-      - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 archives:
-  - id: gqls
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
-    formats:
+  - formats:
       - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
         formats:
           - zip
-    files:
-      - README.md
-      - LICENSE
 
 checksum:
   name_template: "checksums.txt"
@@ -55,46 +37,36 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-      - "^ci:"
-      - Merge pull request
-      - Merge branch
+      - "^chore:"
 
-homebrew_casks:
+# ─── Homebrew Tap ─────────────────────────────────────────────────────────────
+brews:
   - name: gqls
+
+    # The tap repo: github.com/omkoli/homebrew-gqls
     repository:
       owner: omkoli
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+      name: homebrew-gqls
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    # Metadata written into the Formula
     homepage: "https://github.com/omkoli/GQLS-CLI"
-    description: "GraphQL security scanner — find what generic scanners miss"
-    license: "MIT"
+    description: "GraphQL vulnerability scanner — find security issues in your GraphQL APIs"
+    license: "MIT"  # change to match your actual license
 
-# dockers_v2 correct syntax for GoReleaser 2.14.1
-dockers_v2:
-  - id: gqls
-    ids:
-      - gqls
-    dockerfile: Dockerfile
-    images:
-      - "ghcr.io/omkoli/gqls"
-    tags:
-      - "{{ .Tag }}"
-      - "{{ .Major }}"
-      - "latest"
-    platforms:
-      - linux/amd64
-      - linux/arm64
-    labels:
-      org.opencontainers.image.title: gqls
-      org.opencontainers.image.version: "{{ .Version }}"
-      org.opencontainers.image.source: "https://github.com/omkoli/GQLS-CLI"
-      org.opencontainers.image.created: "{{ .Date }}"
-      org.opencontainers.image.revision: "{{ .FullCommit }}"
+    # Where in the tap repo to write the formula
+    directory: Formula
 
-release:
-  github:
-    owner: omkoli
-    name: GQLS-CLI
-  draft: false
-  prerelease: auto
-  name_template: "v{{ .Version }}"
+    # Commit message when GoReleaser pushes the formula
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "chore: update gqls formula to {{ .Tag }}"
+
+    # Optional: shell completion / post-install message
+    # install: |
+    #   bin.install "gqls"
+
+    test: |
+      system "#{bin}/gqls", "--version"
