@@ -28,6 +28,21 @@ cd gqls
 go build -o gqls ./cmd/gqls
 ```
 
+Homebrew (macOS / Linux)
+
+```sh
+brew tap omkoli/gqls
+brew install gqls
+```
+
+Or install directly in one command:
+
+```sh
+brew install omkoli/gqls/gqls
+```
+
+---
+
 To embed a version string:
 
 ```sh
