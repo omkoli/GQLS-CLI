@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GQLS — GraphQL Security Scanner</title>
+  <meta name="description" content="CLI that probes GraphQL endpoints for 12 classes of vulnerabilities. Introspection exposure, depth attacks, batch abuse, SQL injection, and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --border-bright: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #666;
+      --accent: #00ff9d;
+      --accent-dim: rgba(0,255,157,0.08);
+      --accent-border: rgba(0,255,157,0.2);
+      --red: #ff4d4d;
+      --yellow: #ffd95c;
+      --blue: #5ca8ff;
+      --orange: #ff8c42;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── GRID LINES ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAV ── */
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+    }
+
+    nav .inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .logo span {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    nav a {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 0 60px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      padding: 4px 10px;
+      border-radius: 2px;
+      margin-bottom: 28px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    h1 .accent { color: var(--accent); }
+
+    .hero-sub {
+      font-size: 18px;
+      font-weight: 300;
+      color: #aaa;
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: 2px;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #00e88d;
+      border-color: #00e88d;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border-bright);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--muted);
+      color: #fff;
+    }
+
+    /* ── TERMINAL ── */
+    .terminal-wrap {
+      margin: 60px 0;
+      position: relative;
+    }
+
+    .terminal-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(135deg, var(--accent-border), transparent 60%);
+      border-radius: 4px;
+      z-index: 0;
+    }
+
+    .terminal {
+      background: #0d0d0d;
+      border: 1px solid var(--border-bright);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: #161616;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .t-prompt { color: var(--accent); }
+    .t-cmd { color: #fff; }
+    .t-comment { color: var(--muted); }
+    .t-high { color: var(--red); font-weight: 600; }
+    .t-med { color: var(--yellow); }
+    .t-info { color: var(--blue); }
+    .t-ok { color: var(--accent); }
+    .t-label { color: var(--muted); }
+    .t-dim { color: #444; }
+    .t-line { display: block; }
+
+    /* ── CHECKS TABLE ── */
+    .section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #fff;
+      margin-bottom: 32px;
+    }
+
+    .checks-grid {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 100px;
+      gap: 0;
+      background: var(--surface);
+      transition: background 0.15s;
+    }
+
+    .check-row:hover { background: #151515; }
+
+    .check-row.header {
+      background: #141414;
+      pointer-events: none;
+    }
+
+    .check-row > div {
+      padding: 12px 16px;
+      border-right: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .check-row > div:last-child { border-right: none; }
+
+    .check-id {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .check-name { color: var(--text); }
+
+    .check-row.header div {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .sev {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+
+    .sev-critical { color: #ff3333; background: rgba(255,51,51,0.1); }
+    .sev-high { color: var(--red); background: rgba(255,77,77,0.1); }
+    .sev-medium { color: var(--yellow); background: rgba(255,217,92,0.1); }
+    .sev-low { color: var(--orange); background: rgba(255,140,66,0.1); }
+    .sev-info { color: var(--blue); background: rgba(92,168,255,0.1); }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .feature {
+      background: var(--surface);
+      padding: 24px;
+      transition: background 0.15s;
+    }
+
+    .feature:hover { background: #151515; }
+
+    .feature-icon {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .feature h3 {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── INSTALL ── */
+    .install-block {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+
+    .install-tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 10px 16px;
+      color: var(--muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .install-content {
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .install-content .t-prompt { user-select: none; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer .inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    footer .logo { font-size: 14px; }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    footer p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #333;
+      width: 100%;
+    }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.6s forwards;
+    }
+
+    .fade-up:nth-child(2) { animation-delay: 0.1s; }
+    .fade-up:nth-child(3) { animation-delay: 0.2s; }
+    .fade-up:nth-child(4) { animation-delay: 0.3s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── COPY BUTTON ── */
+    .copy-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border-bright);
+      padding: 4px 10px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      float: right;
+      margin-bottom: 8px;
+    }
+
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent-border); }
+
+    @media (max-width: 600px) {
+      .check-row { grid-template-columns: 80px 1fr; }
+      .check-row > div:last-child { display: none; }
+      nav .links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="inner">
+      <div class="logo">gqls<span>-cli</span></div>
+      <div style="display:flex;gap:24px;align-items:center;">
+        <a href="#checks">Checks</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/omkoli/GQLS-CLI" target="_blank">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <div class="badge">v0.1.0 · Open Source · MIT</div>
+      <h1 class="fade-up">GraphQL<br><span class="accent">Security</span><br>Scanner.</h1>
+      <p class="hero-sub fade-up">
+        Probe any GraphQL endpoint for 12 classes of vulnerabilities — from introspection exposure and depth attacks to SQL injection. Paste a curl command, get findings in seconds.
+      </p>
+      <div class="hero-actions fade-up">
+        <a href="#install" class="btn btn-primary">→ Install</a>
+        <a href="https://github.com/omkoli/GQLS-CLI" target="_blank" class="btn btn-ghost">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <!-- TERMINAL DEMO -->
+      <div class="terminal-wrap">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
+            <span class="terminal-title">gqls scan</span>
+          </div>
+          <div class="terminal-body">
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">gqls scan --url https://api.example.com/graphql --header 'Authorization: Bearer eyJ...'</span></span>
+            <span class="t-line t-dim">──────────────────────────────────────────────────</span>
+            <span class="t-line"><span class="t-high">[ HIGH ]</span>     <span class="t-cmd">GQL-001 — Introspection Enabled</span></span>
+            <span class="t-line"><span class="t-high">[ HIGH ]</span>     <span class="t-cmd">GQL-007 — Query Depth Limit Not Enforced</span></span>
+            <span class="t-line"><span class="t-high">[ HIGH ]</span>     <span class="t-cmd">GQL-009 — Batch Query Abuse</span></span>
+            <span class="t-line"><span class="t-med">[ MEDIUM ]</span>   <span class="t-cmd">GQL-003 — Schema Exposed via Field Suggestions</span></span>
+            <span class="t-line t-dim">──────────────────────────────────────────────────</span>
+            <span class="t-line"><span class="t-label">Checks run   </span> 12 &nbsp;&nbsp; <span class="t-label">Duration</span>  3.847s &nbsp;&nbsp; <span class="t-label">Requests</span>  41</span>
+            <span class="t-line"><span class="t-label">Findings     </span> <span class="t-high">HIGH 3</span> &nbsp; <span class="t-med">MEDIUM 1</span> &nbsp; <span class="t-ok">LOW 0</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div class="container">
+      <div class="section-label">Why GQLS</div>
+      <h2>Built for the way you actually work.</h2>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <h3>curl import</h3>
+          <p>Paste a raw curl command from DevTools. Headers, auth tokens, and body are extracted automatically.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📄</div>
+          <h3>SARIF output</h3>
+          <p>Integrates with GitHub Code Scanning, GitLab SAST, and any CI pipeline that speaks SARIF 2.1.0.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎯</div>
+          <h3>12 targeted checks</h3>
+          <p>GraphQL-specific detections from introspection abuse to unauthenticated mutations and SQL injection.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔧</div>
+          <h3>CI-ready</h3>
+          <p>Exit codes, <code>--fail-on</code> severity threshold, and JSON/SARIF output built for automated pipelines.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🛡️</div>
+          <h3>Fingerprint suppression</h3>
+          <p>Suppress known false positives by SHA-256 fingerprint. Stable across scans, team-shareable via config.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🐹</div>
+          <h3>Single binary</h3>
+          <p>Written in Go. No runtime dependencies. Cross-platform. One binary, put it on PATH and run.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECKS -->
+  <section class="section" id="checks">
+    <div class="container">
+      <div class="section-label">Detection Coverage</div>
+      <h2>12 checks. Zero noise.</h2>
+      <div class="checks-grid">
+        <div class="check-row header">
+          <div>ID</div>
+          <div>Check</div>
+          <div>Severity</div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-001</div>
+          <div class="check-name">Introspection Enabled</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-002</div>
+          <div class="check-name">Introspection Bypass via __type</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-003</div>
+          <div class="check-name">Schema Exposed via Field Suggestions</div>
+          <div><span class="sev sev-medium">MEDIUM</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-004</div>
+          <div class="check-name">GraphQL Playground Exposed</div>
+          <div><span class="sev sev-medium">MEDIUM</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-005</div>
+          <div class="check-name">Stack Trace / Debug Info in Error Responses</div>
+          <div><span class="sev sev-medium">MEDIUM</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-006</div>
+          <div class="check-name">Sensitive Fields Exposed in Schema</div>
+          <div><span class="sev sev-info">INFO</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-007</div>
+          <div class="check-name">Query Depth Limit Not Enforced</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-008</div>
+          <div class="check-name">Query Complexity Limit Not Enforced</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-009</div>
+          <div class="check-name">Batch Query Abuse</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-010</div>
+          <div class="check-name">GraphQL GET Queries Enabled</div>
+          <div><span class="sev sev-low">LOW</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-011</div>
+          <div class="check-name">SQL Injection (Error-Based)</div>
+          <div><span class="sev sev-critical">CRITICAL</span></div>
+        </div>
+        <div class="check-row">
+          <div class="check-id">GQL-012</div>
+          <div class="check-name">Unauthenticated Access to Mutations</div>
+          <div><span class="sev sev-high">HIGH</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="section" id="install">
+    <div class="container">
+      <div class="section-label">Get Started</div>
+      <h2>Install &amp; run in under a minute.</h2>
+
+      <div class="install-block">
+        <div class="install-tab-bar">
+          <div class="tab active">From source</div>
+        </div>
+        <div class="install-content">
+          <button class="copy-btn" onclick="copyInstall()">copy</button>
+          <span id="install-cmds">
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/omkoli/GQLS-CLI</span></span>
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">cd GQLS-CLI && go build -o gqls ./cmd/gqls</span></span>
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">mv gqls /usr/local/bin/gqls</span></span>
+            <span class="t-line t-dim">&nbsp;</span>
+            <span class="t-line t-comment"># Run your first scan</span>
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">gqls scan --url https://api.yourapp.com/graphql</span></span>
+            <span class="t-line t-dim">&nbsp;</span>
+            <span class="t-line t-comment"># With auth header</span>
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">gqls scan --url https://api.yourapp.com/graphql \</span></span>
+            <span class="t-line"><span class="t-cmd">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--header 'Authorization: Bearer eyJ...'</span></span>
+            <span class="t-line t-dim">&nbsp;</span>
+            <span class="t-line t-comment"># Paste a curl from DevTools</span>
+            <span class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">gqls scan --curl 'curl https://... -H "Authorization: Bearer eyJ..."'</span></span>
+          </span>
+        </div>
+      </div>
+
+      <p style="margin-top:20px;font-size:13px;color:var(--muted);font-family:var(--mono);">
+        Requires Go 1.24+. Binaries for Linux, macOS, and Windows available on the <a href="https://github.com/omkoli/GQLS-CLI/releases" style="color:var(--accent);text-decoration:none;">releases page ↗</a>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="inner">
+      <div class="logo">gqls<span>-cli</span></div>
+      <div class="footer-links">
+        <a href="https://github.com/omkoli/GQLS-CLI" target="_blank">GitHub</a>
+        <a href="https://github.com/omkoli/GQLS-CLI/releases" target="_blank">Releases</a>
+        <a href="https://github.com/omkoli/GQLS-CLI/issues" target="_blank">Issues</a>
+        <a href="https://github.com/omkoli/GQLS-CLI/blob/main/LICENSE" target="_blank">MIT License</a>
+      </div>
+      <p>MIT Licensed · Built by <a href="https://github.com/omkoli" style="color:var(--muted);text-decoration:none;">@omkoli</a></p>
+    </div>
+  </footer>
+
+  <script>
+    function copyInstall() {
+      const text = `git clone https://github.com/omkoli/GQLS-CLI
+cd GQLS-CLI && go build -o gqls ./cmd/gqls
+mv gqls /usr/local/bin/gqls
+gqls scan --url https://api.yourapp.com/graphql`;
+      navigator.clipboard.writeText(text);
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'copied!';
+      btn.style.color = 'var(--accent)';
+      setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; }, 2000);
+    }
+  </script>
+</body>
+</html>
