@@ -23,7 +23,7 @@ GraphQL security scanner. Probes a GraphQL endpoint for common misconfigurations
 **From source (requires Go 1.24+)**
 
 ```sh
-git clone https://github.com/gqls-cli/gqls.git
+git clone https://github.com/omkoli/GQLS-CLI.git
 cd gqls
 go build -o gqls ./cmd/gqls
 ```
