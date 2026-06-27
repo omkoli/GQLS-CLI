@@ -251,6 +251,20 @@ func extractID(resp *transport.Response, idPath string) string {
 	return findIDLeaf(top)
 }
 
+// FirstID returns the first identifier-like scalar value found anywhere in the
+// response body, or "" when none is present. It is used to discover an object id
+// (e.g. from a viewer/list query) to drive object-level authorization tests.
+func FirstID(resp *transport.Response) string {
+	if resp == nil {
+		return ""
+	}
+	var top interface{}
+	if err := json.Unmarshal(resp.Body, &top); err != nil {
+		return ""
+	}
+	return findIDLeaf(top)
+}
+
 // idLeafRe matches identifier-like JSON keys.
 var idLeafRe = regexp.MustCompile(`(?i)^(id|_id|.*Id|nodeId|uuid|guid)$`)
 

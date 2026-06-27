@@ -97,6 +97,10 @@ type CheckContext struct {
 	// checks must skip unless the operator explicitly opts in via
 	// --authz-allow-mutations.
 	AllowMutations bool
+	// AuthzSeeds maps a root object-fetcher field name to a known object id owned
+	// by a privileged identity, seeding object-level authz tests (GQL-A01) when
+	// self-discovery is not possible. It is nil when no seeds were supplied.
+	AuthzSeeds map[string]string
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,
