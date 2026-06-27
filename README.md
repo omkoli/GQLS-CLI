@@ -401,8 +401,9 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-A01 | Broken Object Level Authorization (BOLA/IDOR) | CRITICAL | Authorization |
 | GQL-A02 | Broken Function Level Authorization (BFLA) | CRITICAL | Authorization |
 | GQL-A03 | Field-Level Authorization (BOPLA / Excessive Data Exposure) | HIGH | Authorization |
+| GQL-A04 | Cross-Tenant Isolation Failure | CRITICAL | Authorization |
 
-GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01/A02/A03 additionally require at least two operator-supplied [identities](#authorization-identities) (of differing privilege for GQL-A02) and are skipped otherwise. GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones.
+GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03/A04 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01/A02/A03/A04 additionally require operator-supplied [identities](#authorization-identities) and are skipped otherwise (GQL-A02 needs differing privilege; GQL-A04 needs two identities in different `tenant`s). GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones.
 
 **Run a subset of checks**
 
