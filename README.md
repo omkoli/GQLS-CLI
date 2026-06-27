@@ -350,8 +350,9 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-D02 | Field Duplication / \_\_typename Flooding | HIGH | DenialOfService |
 | GQL-D03 | Circular Fragment Spread | HIGH | DenialOfService |
 | GQL-D04 | Directive Overloading | MEDIUM | DenialOfService |
+| GQL-D05 | Unbounded List/Pagination Argument | HIGH | DenialOfService |
 
-GQL-006 and GQL-007/GQL-008/GQL-012 require a retrievable schema; they are skipped automatically when schema extraction fails.
+GQL-006, GQL-007/GQL-008/GQL-012, and GQL-D05 require a retrievable schema; they are skipped automatically when schema extraction fails.
 
 **Run a subset of checks**
 
