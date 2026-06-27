@@ -96,7 +96,7 @@ func (c *bolaCheck) Run(ctx context.Context, cc *CheckContext) (CheckResult, err
 			cacheKey := owner.Name + "|" + f.RootField
 			ownerObjID, cached := ownerCache[cacheKey]
 			if !cached {
-				ownerObjID = c.discoverOwnerID(ctx, cc, owner, f, &result)
+				ownerObjID = discoverOwnerObjectID(ctx, cc, owner, f, &result)
 				ownerCache[cacheKey] = ownerObjID
 			}
 			if ownerObjID == "" {
@@ -208,11 +208,12 @@ func (c *bolaCheck) finding(cc *CheckContext, f surface.ObjectFetcher, owner, at
 	}
 }
 
-// discoverOwnerID returns an object id the owner identity legitimately owns for
-// fetcher f. Priority: operator seed → list-query discovery → viewer/me
+// discoverOwnerObjectID returns an object id the owner identity legitimately
+// owns for fetcher f. Priority: operator seed → list-query discovery → viewer/me
 // discovery. Returns "" when none can be established. It increments
-// result.ProbeCount for each discovery request sent.
-func (c *bolaCheck) discoverOwnerID(ctx context.Context, cc *CheckContext, owner Identity,
+// result.ProbeCount for each discovery request sent. Shared by the object-level
+// authorization checks (GQL-A01, GQL-A03).
+func discoverOwnerObjectID(ctx context.Context, cc *CheckContext, owner Identity,
 	f surface.ObjectFetcher, result *CheckResult) string {
 
 	if cc.AuthzSeeds != nil {
