@@ -373,6 +373,7 @@ func buildIdentities(cfg *config.ScanConfig, anonClient *transport.Client) []aut
 			Privilege: ic.Privilege,
 			Tenant:    ic.Tenant,
 			Client:    transport.NewClient(cfg.Timeout, cfg.RateLimit, hdrs),
+			Headers:   hdrs,
 		})
 	}
 	return authz.WithAnonymous(idents, anonClient)

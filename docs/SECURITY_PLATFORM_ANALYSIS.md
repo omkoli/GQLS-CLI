@@ -80,7 +80,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | GQL-A01 | **BOLA / IDOR** — object access across IDs (e.g. `user(id:)`, `order(id:)`) with role A's token reaching role B's objects | API1 / CWE-639 | ✅ (implemented) | CRIT | H | **P0** |
 | GQL-A02 | **BFLA** — privileged mutations/queries reachable by lower-privilege role | API5 / CWE-285 | ✅ (implemented) | CRIT | H | **P0** |
 | GQL-A03 | **BOPLA / field-level authz** — sensitive fields (`email`, `ssn`, `isAdmin`) returned to under-privileged roles even when object access is intended | API3 / CWE-213 | ✅ (implemented) | HIGH | H | **P0** |
-| GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ❌ | CRIT | H | P1 |
+| GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ✅ (implemented) | CRIT | H | P1 |
 | GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ❌ | CRIT | H | P1 |
 | GQL-A06 | **Auth via aliases / batching bypass** — rate-limit / brute-force protection bypass by aliasing `login` N times in one request | API4 / CWE-307 | ❌ (009 is generic batch) | HIGH | M | **P0** |
 | GQL-A07 | **GraphQL CSRF** — state-changing operation accepted via GET or `Content-Type: text/plain`/`application/x-www-form-urlencoded` without CSRF token | API8 / CWE-352 | ❌ | HIGH | L | **P0** |
@@ -160,7 +160,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 
 | OWASP API risk | gqls today | Gap severity |
 |---|---|---|
-| API1 — Broken Object Level Authorization (BOLA) | 🟡 (A01 differential BOLA/IDOR) | **High** — core object-id IDOR covered; cross-tenant (A04) still open |
+| API1 — Broken Object Level Authorization (BOLA) | ✅ (A01 BOLA/IDOR + A04 cross-tenant) | **Low** — object-id IDOR and cross-tenant isolation both covered |
 | API2 — Broken Authentication | 🟡 (012 unauth mutations; auth probe) | High — no brute-force/JWT/session testing |
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | 🟡 (A03 tests sensitive-field *exposure to wrong role*; 006 flags schema fields) | **Medium** — field-authz covered; mass assignment (B02) still open |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |

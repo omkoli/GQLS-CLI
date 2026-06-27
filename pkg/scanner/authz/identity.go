@@ -36,6 +36,10 @@ type Identity struct {
 	// Client is the dedicated, rate-limited HTTP client carrying this identity's
 	// headers (e.g. its Authorization token and any tenant header).
 	Client *transport.Client
+	// Headers is the resolved header set this identity carries. It lets checks
+	// read and manipulate tenant-scoping headers (e.g. X-Tenant-Id) for
+	// cross-tenant testing; it mirrors what Client injects. May be nil.
+	Headers map[string]string
 }
 
 // HasMultiple reports whether ids contains at least two identities (including
