@@ -78,7 +78,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | Proposed ID | Check | OWASP / CWE | Have? | Sev | Cx | Pri |
 |---|---|---|---|---|---|---|
 | GQL-A01 | **BOLA / IDOR** — object access across IDs (e.g. `user(id:)`, `order(id:)`) with role A's token reaching role B's objects | API1 / CWE-639 | ✅ (implemented) | CRIT | H | **P0** |
-| GQL-A02 | **BFLA** — privileged mutations/queries reachable by lower-privilege role | API5 / CWE-285 | ❌ | CRIT | H | **P0** |
+| GQL-A02 | **BFLA** — privileged mutations/queries reachable by lower-privilege role | API5 / CWE-285 | ✅ (implemented) | CRIT | H | **P0** |
 | GQL-A03 | **BOPLA / field-level authz** — sensitive fields (`email`, `ssn`, `isAdmin`) returned to under-privileged roles even when object access is intended | API3 / CWE-213 | ❌ | HIGH | H | **P0** |
 | GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ❌ | CRIT | H | P1 |
 | GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ❌ | CRIT | H | P1 |
@@ -164,7 +164,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | API2 — Broken Authentication | 🟡 (012 unauth mutations; auth probe) | High — no brute-force/JWT/session testing |
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | 🟡 (006 flags sensitive *fields in schema*, not *exposure to wrong role*) | **Critical** |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |
-| API5 — Broken Function Level Authorization (BFLA) | ❌ | **Critical** |
+| API5 — Broken Function Level Authorization (BFLA) | 🟡 (A02 differential BFLA) | **High** — privileged-op-by-lower-role covered; subscription authz (A09) still open |
 | API6 — Unrestricted Access to Sensitive Business Flows | ❌ | High |
 | API7 — SSRF | ❌ | High |
 | API8 — Security Misconfiguration | 🟡 (001/004/005/010) | Medium — missing CSRF/CORS/headers |
