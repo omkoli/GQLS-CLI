@@ -120,6 +120,10 @@ func (r *Renderer) RenderFinding(f domain.Finding) error {
 
 	writeSection("WHAT WAS FOUND", f.Description)
 
+	if cls := classificationLine(f); cls != "" {
+		writeSection("CLASSIFICATION", cls)
+	}
+
 	curlCmd := GenerateCurlCommand(f.ReproRequest, f.ReproBody)
 	writeSection("REPRODUCE IT", curlCmd)
 

@@ -14,6 +14,7 @@ import (
 	"github.com/gqls-cli/gqls/pkg/config"
 	curlparser "github.com/gqls-cli/gqls/pkg/ingest/curl"
 	"github.com/gqls-cli/gqls/pkg/reporter"
+	"github.com/gqls-cli/gqls/pkg/scanner/authz"
 	"github.com/gqls-cli/gqls/pkg/scanner/checks"
 	"github.com/gqls-cli/gqls/pkg/schema"
 	"github.com/gqls-cli/gqls/pkg/transport"
@@ -60,6 +61,8 @@ func newScanCmd() *cobra.Command {
 	cmd.Flags().String("config", "", "Path to gqls.yaml config file")
 	cmd.Flags().String("curl", "", "Raw curl command string to ingest (URL, headers, and body are extracted from it)")
 	cmd.Flags().String("curl-file", "", "Path to a file containing a raw curl command (Bash or CMD multiline format)")
+	cmd.Flags().StringArray("identity", nil, "Authorization-testing identity in 'name=userA;priv=10;tenant=t1;header=Authorization: Bearer X' format (repeatable)")
+	cmd.Flags().Bool("authz-allow-mutations", false, "Allow authorization checks to send state-changing requests (e.g. GQL-A05); off by default")
 
 	return cmd
 }
@@ -114,6 +117,12 @@ func runScan(cmd *cobra.Command, _ []string) error {
 	// Unauthenticated client: carries no headers at all. Used by checks that must
 	// test public accessibility (GQL-001, GQL-012) without any credentials.
 	unauthClient := transport.NewClient(cfg.Timeout, cfg.RateLimit, nil)
+
+	// Authorization identities: one dedicated client per operator-supplied
+	// identity, plus an auto-appended anonymous identity (reusing unauthClient)
+	// when at least one authenticated identity is configured. These power the
+	// stateful authz checks (BOLA/BFLA/BOPLA/cross-tenant).
+	identities := buildIdentities(cfg, unauthClient)
 
 	// Initialize and display progress early so user knows scan has started.
 	allChecks := checks.All()
@@ -170,6 +179,8 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		BaseHTTPClient:        baseClient,
 		UnauthenticatedClient: unauthClient,
 		ParsedCurl:            parsedCurlReq,
+		Identities:            identities,
+		AllowMutations:        cfg.AllowAuthzMutations,
 	}
 
 	for _, chk := range selectedChecks {
@@ -342,6 +353,27 @@ func curlCommandString(cmd *cobra.Command) (string, error) {
 		return string(data), nil
 	}
 	return "", nil
+}
+
+// buildIdentities constructs one dedicated transport client per operator-supplied
+// identity (expanding ${ENV_VAR} in header values), then appends the anonymous
+// identity (reusing anonClient) when at least one authenticated identity exists.
+// It returns nil when no identities were configured, so authz checks skip cleanly.
+func buildIdentities(cfg *config.ScanConfig, anonClient *transport.Client) []authz.Identity {
+	if len(cfg.Identities) == 0 {
+		return nil
+	}
+	idents := make([]authz.Identity, 0, len(cfg.Identities)+1)
+	for _, ic := range cfg.Identities {
+		hdrs := config.ResolveIdentityHeaders(ic)
+		idents = append(idents, authz.Identity{
+			Name:      ic.Name,
+			Privilege: ic.Privilege,
+			Tenant:    ic.Tenant,
+			Client:    transport.NewClient(cfg.Timeout, cfg.RateLimit, hdrs),
+		})
+	}
+	return authz.WithAnonymous(idents, anonClient)
 }
 
 // filterChecks returns the subset of checks to run based on allow and deny lists.

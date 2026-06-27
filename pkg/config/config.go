@@ -2,7 +2,10 @@
 package config
 
 import (
+	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +37,13 @@ type ScanConfig struct {
 	FalsePositives []string `mapstructure:"false_positives"`
 	// NoColor disables ANSI color codes in terminal output.
 	NoColor bool `mapstructure:"no_color"`
+	// Identities are the operator-supplied principals used for stateful
+	// authorization testing (BOLA/BFLA/BOPLA/cross-tenant). Each carries its own
+	// headers; header values may reference ${ENV_VAR}.
+	Identities []IdentityConfig `mapstructure:"identities"`
+	// AllowAuthzMutations gates authorization checks that perform state-changing
+	// requests (e.g. GQL-A05). It defaults to false.
+	AllowAuthzMutations bool `mapstructure:"allow_authz_mutations"`
 
 	// CurlBody is the raw request body extracted from a --curl / --curl-file
 	// input. It is not loaded from config files or environment variables; it
@@ -41,6 +51,20 @@ type ScanConfig struct {
 	// command. Checks that perform active injection (e.g. GQL-011) use this
 	// as the seed request body.
 	CurlBody string `mapstructure:"-"`
+}
+
+// IdentityConfig describes a single operator-supplied principal for
+// authorization testing. Headers (typically an Authorization bearer token and
+// an optional tenant header) may reference ${ENV_VAR} expressions.
+type IdentityConfig struct {
+	// Name is the operator-chosen label, e.g. "admin", "userA".
+	Name string `mapstructure:"name"`
+	// Privilege ranks the identity; higher is more privileged. Anonymous is 0.
+	Privilege int `mapstructure:"privilege"`
+	// Tenant is an optional tenant/org identifier for cross-tenant checks.
+	Tenant string `mapstructure:"tenant"`
+	// Headers are the HTTP headers carried by this identity.
+	Headers map[string]string `mapstructure:"headers"`
 }
 
 // Load reads configuration applying precedence: config file < env vars < CLI flags.
@@ -88,6 +112,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	_ = v.BindEnv("no_color", "GQLS_NO_COLOR")
 	_ = v.BindEnv("timeout", "GQLS_TIMEOUT")
 	_ = v.BindEnv("rate_limit", "GQLS_RATE_LIMIT")
+	_ = v.BindEnv("allow_authz_mutations", "GQLS_ALLOW_AUTHZ_MUTATIONS")
 
 	// 4. CLI flags (highest precedence)
 	bindFlag(v, cmd, "url", "url")
@@ -97,6 +122,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	bindFlag(v, cmd, "no_color", "no-color")
 	bindFlag(v, cmd, "timeout", "timeout")
 	bindFlag(v, cmd, "rate_limit", "rate-limit")
+	bindFlag(v, cmd, "allow_authz_mutations", "authz-allow-mutations")
 
 	cfg := &ScanConfig{}
 	if err := v.Unmarshal(cfg); err != nil {
@@ -131,7 +157,118 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 		}
 	}
 
+	// --identity is a string-slice flag that cannot round-trip through viper.
+	// Each value is appended to any identities loaded from the config file;
+	// later entries (CLI) override earlier ones (file) with the same name.
+	if fl := cmd.Flags().Lookup("identity"); fl != nil {
+		if vals, err := cmd.Flags().GetStringArray("identity"); err == nil && len(vals) > 0 {
+			for _, raw := range vals {
+				ic, perr := parseIdentityFlag(raw)
+				if perr != nil {
+					return nil, perr
+				}
+				cfg.Identities = append(cfg.Identities, ic)
+			}
+		}
+	}
+	// Viper lowercases config-file map keys; canonicalize header names from both
+	// the config file and the flags so lookups like Headers["Authorization"] are
+	// predictable regardless of source. (HTTP headers are case-insensitive, but a
+	// stable map case keeps callers simple.)
+	canonicalizeIdentityHeaders(cfg.Identities)
+	cfg.Identities = dedupeIdentities(cfg.Identities)
+
 	return cfg, nil
+}
+
+// canonicalizeIdentityHeaders rewrites each identity's header keys to their HTTP
+// canonical form (e.g. "authorization" → "Authorization") in place.
+func canonicalizeIdentityHeaders(ids []IdentityConfig) {
+	for i := range ids {
+		if len(ids[i].Headers) == 0 {
+			continue
+		}
+		canon := make(map[string]string, len(ids[i].Headers))
+		for k, v := range ids[i].Headers {
+			canon[http.CanonicalHeaderKey(k)] = v
+		}
+		ids[i].Headers = canon
+	}
+}
+
+// parseIdentityFlag parses a single --identity value of the form
+//
+//	name=userA;priv=10;tenant=t1;header=Authorization: Bearer X;header=X-Tenant: t1
+//
+// Segments are separated by ';'. Each segment is a key=value pair; the value of
+// a repeated 'header' segment is split on the first ':' into a header name/value.
+func parseIdentityFlag(raw string) (IdentityConfig, error) {
+	ic := IdentityConfig{Headers: map[string]string{}}
+	for _, seg := range strings.Split(raw, ";") {
+		seg = strings.TrimSpace(seg)
+		if seg == "" {
+			continue
+		}
+		key, val, found := strings.Cut(seg, "=")
+		if !found {
+			return IdentityConfig{}, fmt.Errorf("invalid --identity segment %q (expected key=value)", seg)
+		}
+		key = strings.ToLower(strings.TrimSpace(key))
+		val = strings.TrimSpace(val)
+		switch key {
+		case "name":
+			ic.Name = val
+		case "priv", "privilege":
+			n, err := strconv.Atoi(val)
+			if err != nil {
+				return IdentityConfig{}, fmt.Errorf("invalid --identity privilege %q: %w", val, err)
+			}
+			ic.Privilege = n
+		case "tenant":
+			ic.Tenant = val
+		case "header":
+			hk, hv, ok := strings.Cut(val, ":")
+			if !ok {
+				return IdentityConfig{}, fmt.Errorf("invalid --identity header %q (expected 'Name: Value')", val)
+			}
+			ic.Headers[strings.TrimSpace(hk)] = strings.TrimSpace(hv)
+		default:
+			return IdentityConfig{}, fmt.Errorf("unknown --identity key %q", key)
+		}
+	}
+	if ic.Name == "" {
+		return IdentityConfig{}, fmt.Errorf("--identity requires a name= segment")
+	}
+	return ic, nil
+}
+
+// dedupeIdentities removes identities with duplicate names, keeping the last
+// occurrence (so CLI flags, appended after config-file entries, win).
+func dedupeIdentities(in []IdentityConfig) []IdentityConfig {
+	if len(in) < 2 {
+		return in
+	}
+	lastIdx := map[string]int{}
+	for i, ic := range in {
+		lastIdx[ic.Name] = i
+	}
+	var out []IdentityConfig
+	for i, ic := range in {
+		if lastIdx[ic.Name] == i {
+			out = append(out, ic)
+		}
+	}
+	return out
+}
+
+// ResolveIdentityHeaders returns a copy of an identity's headers with
+// ${ENV_VAR} expressions expanded.
+func ResolveIdentityHeaders(ic IdentityConfig) map[string]string {
+	resolved := make(map[string]string, len(ic.Headers))
+	for k, v := range ic.Headers {
+		resolved[k] = os.Expand(v, os.Getenv)
+	}
+	return resolved
 }
 
 // ResolveHeaders returns a copy of cfg.Headers with ${ENV_VAR} expressions expanded.

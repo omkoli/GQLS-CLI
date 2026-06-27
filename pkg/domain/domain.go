@@ -77,6 +77,10 @@ const (
 	DenialOfService Category = "DenialOfService"
 	// Authentication covers checks that detect auth bypass or weakness.
 	Authentication Category = "Authentication"
+	// Authorization covers checks that detect broken object/function/property
+	// level authorization (BOLA/BFLA/BOPLA), cross-tenant isolation failures,
+	// and related access-control weaknesses.
+	Authorization Category = "Authorization"
 	// Injection covers checks that detect injection-style vulnerabilities.
 	Injection Category = "Injection"
 )
@@ -107,6 +111,15 @@ type Finding struct {
 	ReproBody []byte
 	// Fingerprint is a stable SHA-256 hash for deduplication and FP suppression.
 	Fingerprint string
+	// Confidence expresses how strongly the evidence supports the finding:
+	// "confirmed", "firm", or "tentative". Empty when a check does not set it.
+	Confidence string `json:",omitempty"`
+	// CWE is the Common Weakness Enumeration identifier (e.g. "CWE-639").
+	// Empty when a check does not set it.
+	CWE string `json:",omitempty"`
+	// OWASP is the OWASP API Security Top 10 identifier (e.g. "API1:2023").
+	// Empty when a check does not set it.
+	OWASP string `json:",omitempty"`
 }
 
 // PassProbe records a single HTTP probe that was sent by a check that produced no findings.

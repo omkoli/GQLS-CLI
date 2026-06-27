@@ -8,6 +8,7 @@ GraphQL security scanner. Probes a GraphQL endpoint for common misconfigurations
 - [Quick start](#quick-start)
 - [Scan command](#scan-command)
 - [Flags reference](#flags-reference)
+- [Authorization identities](#authorization-identities)
 - [curl input](#curl-input)
 - [Configuration file](#configuration-file)
 - [Environment variables](#environment-variables)
@@ -111,6 +112,49 @@ gqls scan [flags]
 | `--timeout <duration>` | `30s` | Per-request HTTP timeout (e.g. `10s`, `2m`). |
 | `--rate-limit <n>` | `10` | Maximum HTTP requests per second. |
 | `--config <path>` | — | Path to a `gqls.yaml` config file. |
+| `--identity <spec>` | — | Authorization-testing identity. Repeatable. Format: `name=userA;priv=10;tenant=t1;header=Authorization: Bearer X` (`header=` repeatable). See [Authorization identities](#authorization-identities). |
+| `--authz-allow-mutations` | false | Allow authorization checks to send state-changing requests (e.g. mutation-side authz). Off by default. |
+
+---
+
+## Authorization identities
+
+Stateful authorization checks (BOLA/BFLA/BOPLA, cross-tenant isolation, etc.) decide whether an access is
+broken by sending the *same* operation as two different principals and comparing the responses. They
+therefore require you to supply at least one authenticated **identity**; the scanner never invents or
+brute-forces credentials. An `anonymous` identity (no auth headers, privilege `0`) is appended automatically
+when at least one identity is configured.
+
+Define identities on the command line (repeat `--identity`):
+
+```bash
+gqls scan --url https://api.example.com/graphql \
+  --identity 'name=admin;priv=100;header=Authorization: Bearer '"$ADMIN_TOKEN" \
+  --identity 'name=userB;priv=10;tenant=t2;header=Authorization: Bearer '"$USERB_TOKEN"
+```
+
+…or in `gqls.yaml` (header values support `${ENV_VAR}` expansion):
+
+```yaml
+identities:
+  - name: admin
+    privilege: 100        # higher = more privileged; anonymous is 0
+    headers:
+      Authorization: "Bearer ${ADMIN_TOKEN}"
+  - name: userB
+    privilege: 10
+    tenant: t2            # optional; used by cross-tenant checks
+    headers:
+      Authorization: "Bearer ${USERB_TOKEN}"
+
+# Authorization checks are read-only by default. Opt in before any check is
+# allowed to send state-changing (mutation) requests:
+allow_authz_mutations: false
+```
+
+`priv` (or `privilege`) ranks identities so checks can form `(higher-privilege, lower-privilege)` test
+pairs; `tenant` scopes an identity to a tenant for cross-tenant tests. Same-named identities from the
+config file are overridden by `--identity` flags.
 
 ---
 

@@ -98,6 +98,12 @@ type SARIFProperties struct {
 	Tags []string `json:"tags"`
 	// Severity is the original scanner severity string (e.g. "HIGH").
 	Severity string `json:"severity"`
+	// CWE is the Common Weakness Enumeration identifier, when known.
+	CWE string `json:"cwe,omitempty"`
+	// OWASP is the OWASP API Security Top 10 identifier, when known.
+	OWASP string `json:"owasp,omitempty"`
+	// Confidence expresses how strongly evidence supports the finding, when set.
+	Confidence string `json:"confidence,omitempty"`
 }
 
 // NewReport creates a new SARIF 2.1.0 report stamped with the given tool version.
@@ -139,6 +145,28 @@ func (r *SARIFReport) AddRule(id, name, shortDesc, fullDesc, severity string, ta
 			Tags:     tags,
 		},
 	})
+}
+
+// SetRuleClassification attaches optional triage metadata (CWE, OWASP,
+// confidence) to an existing rule. Empty values are left unset so legacy rules
+// serialize unchanged. It is a no-op when the rule ID is unknown.
+func (r *SARIFReport) SetRuleClassification(id, cwe, owasp, confidence string) {
+	run := &r.Runs[0]
+	for i := range run.Tool.Driver.Rules {
+		if run.Tool.Driver.Rules[i].ID != id {
+			continue
+		}
+		if cwe != "" {
+			run.Tool.Driver.Rules[i].Properties.CWE = cwe
+		}
+		if owasp != "" {
+			run.Tool.Driver.Rules[i].Properties.OWASP = owasp
+		}
+		if confidence != "" {
+			run.Tool.Driver.Rules[i].Properties.Confidence = confidence
+		}
+		return
+	}
 }
 
 // AddResult appends a finding to the report, mapping severity to a SARIF level.
