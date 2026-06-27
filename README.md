@@ -352,6 +352,8 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-D04 | Directive Overloading | MEDIUM | DenialOfService |
 | GQL-D05 | Unbounded List/Pagination Argument | HIGH | DenialOfService |
 | GQL-D06 | Query Cost Amplification | MEDIUM | DenialOfService |
+| GQL-D07 | Persisted Query / APQ Not Enforced | MEDIUM | DenialOfService |
+| GQL-D08 | Unbounded Introspection Amplification | LOW | DenialOfService |
 
 GQL-006, GQL-007/GQL-008/GQL-012, and GQL-D05 require a retrievable schema; they are skipped automatically when schema extraction fails.
 
