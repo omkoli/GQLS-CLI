@@ -8,9 +8,14 @@ import (
 	"sort"
 
 	"github.com/gqls-cli/gqls/pkg/domain"
+	"github.com/gqls-cli/gqls/pkg/scanner/authz"
 	"github.com/gqls-cli/gqls/pkg/schema"
 	"github.com/gqls-cli/gqls/pkg/transport"
 )
+
+// Identity re-exports authz.Identity so checks and tests can reference it
+// without importing pkg/scanner/authz directly.
+type Identity = authz.Identity
 
 // Type aliases re-export the domain types so that individual check files and
 // tests in this package can reference them without importing pkg/domain directly.
@@ -38,6 +43,7 @@ const (
 	InformationDisclosure = domain.InformationDisclosure
 	DenialOfService       = domain.DenialOfService
 	Authentication        = domain.Authentication
+	Authorization         = domain.Authorization
 	Injection             = domain.Injection
 )
 
@@ -79,6 +85,18 @@ type CheckContext struct {
 	// (introspection, batch, complexity, etc.) should use cc.Target with a freshly
 	// generated GraphQL payload and must NOT reuse ParsedCurl.Body.
 	ParsedCurl *CurlRequest
+	// Identities holds the operator-supplied principals used for stateful
+	// authorization testing (BOLA/BFLA/BOPLA/cross-tenant/etc.). Each Identity
+	// carries its own HTTP client. The anonymous identity is appended
+	// automatically when at least one authenticated identity is configured.
+	// It is empty (or contains only anonymous) when no identities were supplied;
+	// authorization checks must skip cleanly in that case.
+	Identities []Identity
+	// AllowMutations gates checks that perform state-changing requests
+	// (e.g. GQL-A05 mutation-side authorization). It defaults to false; such
+	// checks must skip unless the operator explicitly opts in via
+	// --authz-allow-mutations.
+	AllowMutations bool
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,
@@ -90,6 +108,24 @@ func (cc *CheckContext) ProbeClient() *transport.Client {
 		return cc.BaseHTTPClient
 	}
 	return cc.HTTPClient
+}
+
+// HasIdentities reports whether at least two identities (including the
+// auto-appended anonymous one) are available — the minimum for a differential
+// authorization test. Authorization checks should skip when this is false.
+func (cc *CheckContext) HasIdentities() bool {
+	return authz.HasMultiple(cc.Identities)
+}
+
+// IdentityPairs returns the deterministic (higher-privilege, lower-privilege)
+// identity pairs used as (owner/victim, attacker) inputs to differential probes.
+func (cc *CheckContext) IdentityPairs() [][2]Identity {
+	return authz.Pairs(cc.Identities)
+}
+
+// IdentityByName returns the configured identity with the given name, if present.
+func (cc *CheckContext) IdentityByName(name string) (Identity, bool) {
+	return authz.ByName(cc.Identities, name)
 }
 
 // Check is the interface that every security check must implement.

@@ -202,6 +202,10 @@ func (r *TXTRenderer) writeFindingContent(sb *strings.Builder, f domain.Finding)
 
 	writeSection("WHAT WAS FOUND", f.Description)
 
+	if cls := classificationLine(f); cls != "" {
+		writeSection("CLASSIFICATION", cls)
+	}
+
 	if f.ReproRequest != nil {
 		sb.WriteString("REPRODUCE\n")
 		curl := r.formatCurlTXT(f.ReproRequest, f.ReproBody)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gqls-cli/gqls/pkg/domain"
@@ -27,6 +28,24 @@ type ScanResult struct {
 	Schema *schema.Schema
 	// CheckResults contains individual check outcomes, including skipped checks.
 	CheckResults []domain.CheckResult
+}
+
+// classificationLine renders the optional triage metadata (CWE, OWASP, and
+// confidence) for a finding as a single compact line. It returns "" when none of
+// the fields are set, so reporters can skip the section entirely and keep output
+// for legacy findings unchanged.
+func classificationLine(f domain.Finding) string {
+	var parts []string
+	if f.CWE != "" {
+		parts = append(parts, f.CWE)
+	}
+	if f.OWASP != "" {
+		parts = append(parts, f.OWASP)
+	}
+	if f.Confidence != "" {
+		parts = append(parts, "confidence: "+f.Confidence)
+	}
+	return strings.Join(parts, " · ")
 }
 
 // Reporter is the interface implemented by all output format renderers.
@@ -109,6 +128,7 @@ func (r *sarifReporter) RenderReport(target string, result *ScanResult) error {
 			f.CheckID, f.CheckName, f.Description, f.Impact,
 			f.Severity.String(), []string{string(f.Category)},
 		)
+		sarifReport.SetRuleClassification(f.CheckID, f.CWE, f.OWASP, f.Confidence)
 		uri := target
 		if f.ReproRequest != nil {
 			uri = f.ReproRequest.URL.String()
