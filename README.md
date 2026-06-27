@@ -348,6 +348,7 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-012 | Unauthenticated Access to Mutations | HIGH | Authentication |
 | GQL-D01 | Alias-Based Query Amplification | HIGH | DenialOfService |
 | GQL-D02 | Field Duplication / \_\_typename Flooding | HIGH | DenialOfService |
+| GQL-D03 | Circular Fragment Spread | HIGH | DenialOfService |
 
 GQL-006 and GQL-007/GQL-008/GQL-012 require a retrievable schema; they are skipped automatically when schema extraction fails.
 
