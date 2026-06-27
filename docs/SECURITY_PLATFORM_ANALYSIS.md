@@ -55,7 +55,7 @@ Grades are A–F on *commercial-scanner* standards, not on "is it nice OSS."
 | **curl ingestion** | Real parser, Bash + CMD multiline, ANSI-C quotes, smart-quote normalization, no shell exec | A | Excellent and security-correct. This is a sleeper UX feature. Extend it to HAR and OpenAPI/Postman import. |
 | **Auth model** | Static headers; unauth vs base vs full client separation; auth probe in extractor | C | Static bearer/cookie only. No login flow, no token refresh, no OAuth, no multi-role/multi-tenant identities — which is the prerequisite for *all* authorization testing. This is the single biggest blocker to commercial relevance. |
 | **Checks: InfoDisclosure** | GQL-001..006, 010 | B | Solid coverage of the easy class. Missing CSRF, field-suggestion *exploitation* (you harvest but don't weaponize), introspection-via-GET, trace/`extensions` leakage taxonomy. |
-| **Checks: DoS** | GQL-007 depth, 008 complexity, 009 batch | B− | Depth uses latency heuristics (4×, ≥500ms) — noisy and evadable. **Missing the highest-signal DoS vectors: alias-based amplification, field duplication, circular fragments, `__typename` flooding, directive overloading.** These are cheap to add and are real CVEs. |
+| **Checks: DoS** | GQL-007 depth, 008 complexity, 009 batch, **D01 alias amplification** | B | Depth uses latency heuristics (4×, ≥500ms) — noisy and evadable. GQL-D01 now adds the structural alias-amplification signal. **Still missing: field duplication, circular fragments, `__typename` flooding, directive overloading.** These are cheap to add and are real CVEs. |
 | **Checks: Injection** | GQL-011 error-based SQLi only | D+ | One String arg of one query + one mutation, 5 payloads, regex on DB errors. No boolean/time-based, no NoSQL/Mongo, no OS command, no SSRF, no XSS-in-GraphQL, no ORM operator injection. Injection coverage is a rounding error. |
 | **Checks: AuthN/AuthZ** | GQL-012 unauth mutations only | D | **The crown jewels of GraphQL security — BOLA, BFLA, field-level authz, cross-tenant IDOR — are entirely missing.** GQL-012 is one narrow slice (anonymous mutation execution). |
 | **Reporting** | terminal/txt/json/sarif, repro curl, redaction of `Authorization`, pass-probe transparency | A− | "Show the probes even when clean" is a genuinely good trust feature most tools lack. Missing: HTML report, JUnit XML, GitHub SARIF upload helper, CycloneDX, dedup across runs, severity-with-confidence, CWE/OWASP tags in output. |
@@ -91,7 +91,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 
 | Proposed ID | Check | Reference | Have? | Sev | Cx | Pri |
 |---|---|---|---|---|---|---|
-| GQL-D01 | **Alias-based amplification** — `a1:expensiveField a2:expensiveField …` ×1000 in one doc | OWASP CS "Aliases"; PortSwigger | ❌ | HIGH | L | **P0** |
+| GQL-D01 | **Alias-based amplification** — `a1:expensiveField a2:expensiveField …` ×1000 in one doc | OWASP CS "Aliases"; PortSwigger | ✅ (implemented) | HIGH | L | **P0** |
 | GQL-D02 | **Field duplication / `__typename` flooding** — same field repeated thousands of times (graphql-js amplification class) | GHSA advisories | ❌ | HIGH | L | **P0** |
 | GQL-D03 | **Circular fragment / fragment-spread bomb** — mutually referential fragments (parser/validator DoS) | OWASP CS | ❌ | HIGH | L | P1 |
 | GQL-D04 | **Directive overloading** — `@a @a @a …` ×N on a field (known graphql-js DoS class) | GHSA | ❌ | MED | L | P1 |
