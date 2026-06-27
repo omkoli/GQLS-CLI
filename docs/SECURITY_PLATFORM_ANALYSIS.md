@@ -77,7 +77,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 
 | Proposed ID | Check | OWASP / CWE | Have? | Sev | Cx | Pri |
 |---|---|---|---|---|---|---|
-| GQL-A01 | **BOLA / IDOR** — object access across IDs (e.g. `user(id:)`, `order(id:)`) with role A's token reaching role B's objects | API1 / CWE-639 | ❌ | CRIT | H | **P0** |
+| GQL-A01 | **BOLA / IDOR** — object access across IDs (e.g. `user(id:)`, `order(id:)`) with role A's token reaching role B's objects | API1 / CWE-639 | ✅ (implemented) | CRIT | H | **P0** |
 | GQL-A02 | **BFLA** — privileged mutations/queries reachable by lower-privilege role | API5 / CWE-285 | ❌ | CRIT | H | **P0** |
 | GQL-A03 | **BOPLA / field-level authz** — sensitive fields (`email`, `ssn`, `isAdmin`) returned to under-privileged roles even when object access is intended | API3 / CWE-213 | ❌ | HIGH | H | **P0** |
 | GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ❌ | CRIT | H | P1 |
@@ -160,7 +160,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 
 | OWASP API risk | gqls today | Gap severity |
 |---|---|---|
-| API1 — Broken Object Level Authorization (BOLA) | ❌ | **Critical** — #1 GraphQL bug class, unaddressed |
+| API1 — Broken Object Level Authorization (BOLA) | 🟡 (A01 differential BOLA/IDOR) | **High** — core object-id IDOR covered; cross-tenant (A04) still open |
 | API2 — Broken Authentication | 🟡 (012 unauth mutations; auth probe) | High — no brute-force/JWT/session testing |
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | 🟡 (006 flags sensitive *fields in schema*, not *exposure to wrong role*) | **Critical** |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |

@@ -398,8 +398,9 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-D06 | Query Cost Amplification | MEDIUM | DenialOfService |
 | GQL-D07 | Persisted Query / APQ Not Enforced | MEDIUM | DenialOfService |
 | GQL-D08 | Unbounded Introspection Amplification | LOW | DenialOfService |
+| GQL-A01 | Broken Object Level Authorization (BOLA/IDOR) | CRITICAL | Authorization |
 
-GQL-006, GQL-007/GQL-008/GQL-012, and GQL-D05 require a retrievable schema; they are skipped automatically when schema extraction fails.
+GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01 additionally requires at least two operator-supplied [identities](#authorization-identities) and is skipped otherwise.
 
 **Run a subset of checks**
 

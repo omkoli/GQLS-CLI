@@ -28,7 +28,37 @@ func newAuthzTestCmd() *cobra.Command {
 	cmd.Flags().String("config", "", "")
 	cmd.Flags().StringArray("identity", nil, "")
 	cmd.Flags().Bool("authz-allow-mutations", false, "")
+	cmd.Flags().StringArray("authz-seed", nil, "")
 	return cmd
+}
+
+func TestParseSeedFlag(t *testing.T) {
+	field, value, err := parseSeedFlag("user.id=42")
+	require.NoError(t, err)
+	assert.Equal(t, "user", field)
+	assert.Equal(t, "42", value)
+
+	field, value, err = parseSeedFlag("order=7")
+	require.NoError(t, err)
+	assert.Equal(t, "order", field)
+	assert.Equal(t, "7", value)
+
+	for _, bad := range []string{"noequals", "=42", "user="} {
+		if _, _, err := parseSeedFlag(bad); err == nil {
+			t.Fatalf("expected error for %q", bad)
+		}
+	}
+}
+
+func TestLoad_AuthzSeedFlags(t *testing.T) {
+	cmd := newAuthzTestCmd()
+	require.NoError(t, cmd.Flags().Set("authz-seed", "user.id=42"))
+	require.NoError(t, cmd.Flags().Set("authz-seed", "order=7"))
+
+	cfg, err := Load(viper.New(), cmd)
+	require.NoError(t, err)
+	assert.Equal(t, "42", cfg.AuthzSeeds["user"])
+	assert.Equal(t, "7", cfg.AuthzSeeds["order"])
 }
 
 func TestParseIdentityFlag(t *testing.T) {

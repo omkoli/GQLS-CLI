@@ -44,6 +44,10 @@ type ScanConfig struct {
 	// AllowAuthzMutations gates authorization checks that perform state-changing
 	// requests (e.g. GQL-A05). It defaults to false.
 	AllowAuthzMutations bool `mapstructure:"allow_authz_mutations"`
+	// AuthzSeeds maps a root object-fetcher field name to a known object id owned
+	// by a privileged identity, used to seed object-level authz tests (GQL-A01).
+	// When absent for a fetcher, the check attempts to self-discover an id.
+	AuthzSeeds map[string]string `mapstructure:"authz_seeds"`
 
 	// CurlBody is the raw request body extracted from a --curl / --curl-file
 	// input. It is not loaded from config files or environment variables; it
@@ -178,7 +182,48 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	canonicalizeIdentityHeaders(cfg.Identities)
 	cfg.Identities = dedupeIdentities(cfg.Identities)
 
+	// --authz-seed is a string-slice flag (e.g. 'user.id=42' or 'user=42') that
+	// seeds known object ids for object-level authz tests. Flag values are merged
+	// over any seeds from the config file.
+	if fl := cmd.Flags().Lookup("authz-seed"); fl != nil {
+		if vals, err := cmd.Flags().GetStringArray("authz-seed"); err == nil && len(vals) > 0 {
+			if cfg.AuthzSeeds == nil {
+				cfg.AuthzSeeds = make(map[string]string, len(vals))
+			}
+			for _, raw := range vals {
+				field, value, perr := parseSeedFlag(raw)
+				if perr != nil {
+					return nil, perr
+				}
+				cfg.AuthzSeeds[field] = value
+			}
+		}
+	}
+
 	return cfg, nil
+}
+
+// parseSeedFlag parses a single --authz-seed value of the form 'field=value' or
+// 'field.idArg=value' (e.g. 'user.id=42'), returning the fetcher field name and
+// the seed id value.
+func parseSeedFlag(raw string) (field, value string, err error) {
+	key, val, found := strings.Cut(raw, "=")
+	if !found {
+		return "", "", fmt.Errorf("invalid --authz-seed %q (expected field=value)", raw)
+	}
+	key = strings.TrimSpace(key)
+	val = strings.TrimSpace(val)
+	if key == "" || val == "" {
+		return "", "", fmt.Errorf("invalid --authz-seed %q (field and value are required)", raw)
+	}
+	// Accept 'field.idArg' by keeping only the leading field segment.
+	if dot := strings.IndexByte(key, '.'); dot >= 0 {
+		key = key[:dot]
+	}
+	if key == "" {
+		return "", "", fmt.Errorf("invalid --authz-seed %q (empty field)", raw)
+	}
+	return key, val, nil
 }
 
 // canonicalizeIdentityHeaders rewrites each identity's header keys to their HTTP
