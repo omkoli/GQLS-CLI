@@ -56,6 +56,9 @@ type ScanConfig struct {
 	// the alias auth-bypass check (GQL-A06) should test, e.g. "login" or
 	// `login(email: "x", password: "y")`. Empty means auto-discover from the schema.
 	AuthzLoginOp string `mapstructure:"authz_login_op"`
+	// WSURL overrides the WebSocket endpoint used by the subscription authz check
+	// (GQL-A09). Empty means derive it from the target URL (http→ws, https→wss).
+	WSURL string `mapstructure:"ws_url"`
 
 	// CurlBody is the raw request body extracted from a --curl / --curl-file
 	// input. It is not loaded from config files or environment variables; it
@@ -126,6 +129,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	_ = v.BindEnv("rate_limit", "GQLS_RATE_LIMIT")
 	_ = v.BindEnv("allow_authz_mutations", "GQLS_ALLOW_AUTHZ_MUTATIONS")
 	_ = v.BindEnv("authz_login_op", "GQLS_AUTHZ_LOGIN_OP")
+	_ = v.BindEnv("ws_url", "GQLS_WS_URL")
 
 	// 4. CLI flags (highest precedence)
 	bindFlag(v, cmd, "url", "url")
@@ -137,6 +141,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	bindFlag(v, cmd, "rate_limit", "rate-limit")
 	bindFlag(v, cmd, "allow_authz_mutations", "authz-allow-mutations")
 	bindFlag(v, cmd, "authz_login_op", "authz-login-op")
+	bindFlag(v, cmd, "ws_url", "ws-url")
 
 	cfg := &ScanConfig{}
 	if err := v.Unmarshal(cfg); err != nil {

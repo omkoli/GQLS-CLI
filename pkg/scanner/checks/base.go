@@ -114,6 +114,9 @@ type CheckContext struct {
 	// configured credentials — e.g. the JWT check (GQL-A08) reads the bearer
 	// token from here. May be nil.
 	Headers map[string]string
+	// WSURL overrides the WebSocket endpoint for the subscription authz check
+	// (GQL-A09). Empty means derive it from Target (http→ws, https→wss).
+	WSURL string
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,
