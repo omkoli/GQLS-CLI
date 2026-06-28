@@ -59,6 +59,9 @@ type ScanConfig struct {
 	// WSURL overrides the WebSocket endpoint used by the subscription authz check
 	// (GQL-A09). Empty means derive it from the target URL (http→ws, https→wss).
 	WSURL string `mapstructure:"ws_url"`
+	// OOBDomain is the out-of-band interaction domain for blind injection/SSRF
+	// probes (GQL-I04). Empty disables out-of-band probing.
+	OOBDomain string `mapstructure:"oob_domain"`
 
 	// CurlBody is the raw request body extracted from a --curl / --curl-file
 	// input. It is not loaded from config files or environment variables; it
@@ -142,6 +145,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	bindFlag(v, cmd, "allow_authz_mutations", "authz-allow-mutations")
 	bindFlag(v, cmd, "authz_login_op", "authz-login-op")
 	bindFlag(v, cmd, "ws_url", "ws-url")
+	bindFlag(v, cmd, "oob_domain", "oob-domain")
 
 	cfg := &ScanConfig{}
 	if err := v.Unmarshal(cfg); err != nil {

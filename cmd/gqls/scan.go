@@ -67,6 +67,7 @@ func newScanCmd() *cobra.Command {
 	cmd.Flags().StringArray("authz-seed", nil, "Seed a known object id for object-level authz tests in 'field=id' format, e.g. 'user.id=42' (repeatable)")
 	cmd.Flags().String("authz-login-op", "", "Authentication operation for the alias auth-bypass check (GQL-A06), e.g. 'login' or 'login(email: \"x\", password: \"y\")'")
 	cmd.Flags().String("ws-url", "", "WebSocket endpoint for the subscription authz check (GQL-A09); defaults to the target URL with http→ws / https→wss")
+	cmd.Flags().String("oob-domain", "", "Out-of-band interaction domain for blind injection/SSRF probes (GQL-I04); empty disables out-of-band probing")
 
 	return cmd
 }
@@ -190,6 +191,7 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		AuthzLoginOp:          cfg.AuthzLoginOp,
 		Headers:               resolvedHeaders,
 		WSURL:                 cfg.WSURL,
+		OOBDomain:             cfg.OOBDomain,
 	}
 
 	for _, chk := range selectedChecks {
