@@ -16,6 +16,7 @@ import (
 	"github.com/gqls-cli/gqls/pkg/reporter"
 	"github.com/gqls-cli/gqls/pkg/scanner/authz"
 	"github.com/gqls-cli/gqls/pkg/scanner/checks"
+	"github.com/gqls-cli/gqls/pkg/scanner/oob"
 	"github.com/gqls-cli/gqls/pkg/schema"
 	"github.com/gqls-cli/gqls/pkg/transport"
 )
@@ -192,6 +193,9 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		Headers:               resolvedHeaders,
 		WSURL:                 cfg.WSURL,
 		OOBDomain:             cfg.OOBDomain,
+	}
+	if cfg.OOBDomain != "" {
+		checkCtx.OOBPoller = oob.New(cfg.OOBDomain)
 	}
 
 	for _, chk := range selectedChecks {
