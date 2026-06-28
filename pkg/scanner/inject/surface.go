@@ -154,9 +154,22 @@ func Cap(points []Point, n int) []Point {
 
 // Render builds a full operation document and variables map that injects value
 // at this point, filling all other required arguments/input fields with benign
-// ExampleValue defaults so the document validates. The payload is placed in the
-// variables map under the key "inj".
+// ExampleValue defaults so the document validates. The string payload is coerced
+// to the leaf's scalar type and placed in the variables map under the key "inj".
 func (p Point) Render(s *schema.Schema, value string) (doc string, variables map[string]any) {
+	return p.renderDoc(s), map[string]any{"inj": coerceValue(p.ScalarType, value)}
+}
+
+// RenderValue is like Render but injects value verbatim (no scalar coercion),
+// so callers can inject non-string JSON values such as operator objects
+// (e.g. {"$ne": null}) at a custom JSON/Object scalar leaf — used by NoSQL
+// operator-injection probing.
+func (p Point) RenderValue(s *schema.Schema, value any) (doc string, variables map[string]any) {
+	return p.renderDoc(s), map[string]any{"inj": value}
+}
+
+// renderDoc builds the operation document (independent of the injected value).
+func (p Point) renderDoc(s *schema.Schema) string {
 	field := findRootField(s, p.OpKind, p.RootField)
 	varType := p.ScalarType
 	if varType == "" {
@@ -176,8 +189,7 @@ func (p Point) Render(s *schema.Schema, value string) (doc string, variables map
 	if field != nil {
 		selection = selectionFor(field.Type)
 	}
-	doc = fmt.Sprintf("%s GqlsInj($inj: %s) { %s%s%s }", p.OpKind, varType, p.RootField, args, selection)
-	return doc, map[string]any{"inj": coerceValue(p.ScalarType, value)}
+	return fmt.Sprintf("%s GqlsInj($inj: %s) { %s%s%s }", p.OpKind, varType, p.RootField, args, selection)
 }
 
 func (p Point) topArgName() string {
