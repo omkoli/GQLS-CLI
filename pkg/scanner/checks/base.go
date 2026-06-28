@@ -9,7 +9,7 @@ import (
 
 	"github.com/gqls-cli/gqls/pkg/domain"
 	"github.com/gqls-cli/gqls/pkg/scanner/authz"
-	"github.com/gqls-cli/gqls/pkg/scanner/inject"
+	"github.com/gqls-cli/gqls/pkg/scanner/oob"
 	"github.com/gqls-cli/gqls/pkg/schema"
 	"github.com/gqls-cli/gqls/pkg/transport"
 )
@@ -122,10 +122,10 @@ type CheckContext struct {
 	// blind injection/SSRF probes (e.g. a Collaborator-style listener), set via
 	// --oob-domain. Empty disables out-of-band probing.
 	OOBDomain string
-	// OOBPoller correlates out-of-band callbacks to injected tokens. It is nil
-	// unless an OOB-capable foundation (GQL-I05) wired one in; checks skip the
-	// out-of-band path when it is nil.
-	OOBPoller inject.OOBPoller
+	// OOBPoller correlates out-of-band callbacks to injected tokens (the OOB
+	// interaction client from pkg/scanner/oob). It is nil unless an OOB backend
+	// was wired in; checks skip the out-of-band path when it is nil.
+	OOBPoller oob.Poller
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,

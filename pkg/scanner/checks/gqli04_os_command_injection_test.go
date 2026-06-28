@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gqls-cli/gqls/pkg/scanner/oob"
 	"github.com/gqls-cli/gqls/pkg/schema"
 )
 
@@ -31,14 +32,24 @@ func i04WantsSleep(r *http.Request) bool {
 	return strings.Contains(low, "sleep") || strings.Contains(low, "ping -c")
 }
 
-// fakeOOBPoller is a stub for the I05-supplied OOB poller.
+// fakeOOBPoller is a stub OOB poller; when hit is set, Poll reports a callback.
 type fakeOOBPoller struct {
 	n   int
 	hit bool
 }
 
-func (f *fakeOOBPoller) NewToken() string                            { f.n++; return fmt.Sprintf("tok%d", f.n) }
-func (f *fakeOOBPoller) Correlated(_ context.Context, _ string) bool { return f.hit }
+func (f *fakeOOBPoller) NewToken() (host, fullURL string) {
+	f.n++
+	host = fmt.Sprintf("tok%d.oob.example", f.n)
+	return host, "http://" + host + "/"
+}
+
+func (f *fakeOOBPoller) Poll(_ context.Context, token string, _ time.Duration) ([]oob.Interaction, error) {
+	if f.hit {
+		return []oob.Interaction{{Protocol: "dns", Host: token, SourceIP: "203.0.113.9"}}, nil
+	}
+	return nil, nil
+}
 
 // Time-based oracle confirms command injection → CRITICAL.
 func TestI04_TimeBased_Critical(t *testing.T) {

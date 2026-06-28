@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gqls-cli/gqls/pkg/scanner/inject"
+	"github.com/gqls-cli/gqls/pkg/scanner/oob"
 )
 
 // osCommandInjectionCheck implements GQL-I04: OS command injection. On arguments
@@ -90,13 +91,16 @@ var i04Families = []i04Family{
 	{"background-ping", "& ping -c %d 127.0.0.1"},
 }
 
-// i04OOBPayloads inject an OOB DNS/HTTP lookup of <token>.<oob-domain>. The %s is
-// the unique subdomain.
+// i04OOBPayloads inject an OOB DNS/HTTP lookup. Format arg [1] is the full URL
+// (http://<host>/), arg [2] is the bare host (<token>.<oob-domain>).
 var i04OOBPayloads = []string{
-	"; curl http://%s",
-	"; nslookup %s",
-	"$(curl http://%s)",
+	"; curl %[1]s",
+	"; nslookup %[2]s",
+	"$(curl %[1]s)",
 }
+
+// i04OOBPollWait bounds how long the OOB poll waits for a correlated callback.
+const i04OOBPollWait = 5 * time.Second
 
 // i04ShellErrorPatterns corroborate command execution on verbose servers.
 var i04ShellErrorPatterns = []*regexp.Regexp{
@@ -223,26 +227,26 @@ func (c *osCommandInjectionCheck) probePoint(ctx context.Context, cc *CheckConte
 		}
 	}
 
-	// ── Out-of-band (opt-in, blind).
+	// ── Out-of-band (opt-in, blind): mint one token, inject every OOB payload
+	// variant for it, then poll once for a correlated callback.
 	if oobEnabled {
+		host, fullURL := cc.OOBPoller.NewToken()
 		for _, tmpl := range i04OOBPayloads {
 			if ctx.Err() != nil {
 				return
 			}
-			token := cc.OOBPoller.NewToken()
-			sub := token + "." + cc.OOBDomain
-			doc, vars := tgt.Render(cc.Schema, base+fmt.Sprintf(tmpl, sub))
+			doc, vars := tgt.Render(cc.Schema, base+fmt.Sprintf(tmpl, fullURL, host))
 			resp, body, _ := inject.Send(ctx, cc.HTTPClient, cc.Target, doc, vars)
 			result.ProbeCount++
 			if resp != nil {
 				lastReq, lastBody = resp.Request, body
 			}
-			if cc.OOBPoller.Correlated(ctx, token) {
-				result.Findings = append(result.Findings, c.finding(cc, tgt,
-					fmt.Sprintf("out-of-band callback correlated to %s", sub),
-					"confirmed", sawError, lastReq, lastBody))
-				return
-			}
+		}
+		if hits, _ := cc.OOBPoller.Poll(ctx, host, i04OOBPollWait); len(hits) > 0 {
+			result.Findings = append(result.Findings, c.finding(cc, tgt,
+				fmt.Sprintf("out-of-band callback correlated to %s (%s)", host, oob.Summary(hits)),
+				"confirmed", sawError, lastReq, lastBody))
+			return
 		}
 	}
 
