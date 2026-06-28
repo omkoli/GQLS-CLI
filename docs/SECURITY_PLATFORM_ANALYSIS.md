@@ -81,7 +81,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | GQL-A02 | **BFLA** — privileged mutations/queries reachable by lower-privilege role | API5 / CWE-285 | ✅ (implemented) | CRIT | H | **P0** |
 | GQL-A03 | **BOPLA / field-level authz** — sensitive fields (`email`, `ssn`, `isAdmin`) returned to under-privileged roles even when object access is intended | API3 / CWE-213 | ✅ (implemented) | HIGH | H | **P0** |
 | GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ✅ (implemented) | CRIT | H | P1 |
-| GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ❌ | CRIT | H | P1 |
+| GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ✅ (implemented) | CRIT | H | P1 |
 | GQL-A06 | **Auth via aliases / batching bypass** — rate-limit / brute-force protection bypass by aliasing `login` N times in one request | API4 / CWE-307 | ❌ (009 is generic batch) | HIGH | M | **P0** |
 | GQL-A07 | **GraphQL CSRF** — state-changing operation accepted via GET or `Content-Type: text/plain`/`application/x-www-form-urlencoded` without CSRF token | API8 / CWE-352 | ❌ | HIGH | L | **P0** |
 | GQL-A08 | **JWT weaknesses** — `alg:none`, weak secret, missing `exp`, `kid` injection on the auth token | CWE-347 | ❌ | HIGH | M | P1 |
@@ -164,7 +164,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | API2 — Broken Authentication | 🟡 (012 unauth mutations; auth probe) | High — no brute-force/JWT/session testing |
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | 🟡 (A03 tests sensitive-field *exposure to wrong role*; 006 flags schema fields) | **Medium** — field-authz covered; mass assignment (B02) still open |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |
-| API5 — Broken Function Level Authorization (BFLA) | 🟡 (A02 differential BFLA) | **High** — privileged-op-by-lower-role covered; subscription authz (A09) still open |
+| API5 — Broken Function Level Authorization (BFLA) | 🟡 (A02 BFLA + A05 mutation-side authz) | **Medium** — function- and mutation-side authz covered; subscription authz (A09) still open |
 | API6 — Unrestricted Access to Sensitive Business Flows | ❌ | High |
 | API7 — SSRF | ❌ | High |
 | API8 — Security Misconfiguration | 🟡 (001/004/005/010) | Medium — missing CSRF/CORS/headers |

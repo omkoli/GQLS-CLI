@@ -101,6 +101,10 @@ type CheckContext struct {
 	// by a privileged identity, seeding object-level authz tests (GQL-A01) when
 	// self-discovery is not possible. It is nil when no seeds were supplied.
 	AuthzSeeds map[string]string
+	// AllowedMutations is the explicit per-name allow-list of mutations that the
+	// mutation-side authz check (GQL-A05) may invoke even when their name looks
+	// destructive. Empty means destructive-named mutations are never invoked.
+	AllowedMutations []string
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,
