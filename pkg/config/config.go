@@ -44,6 +44,10 @@ type ScanConfig struct {
 	// AllowAuthzMutations gates authorization checks that perform state-changing
 	// requests (e.g. GQL-A05). It defaults to false.
 	AllowAuthzMutations bool `mapstructure:"allow_authz_mutations"`
+	// AllowedMutations is the explicit per-name allow-list of mutations that
+	// GQL-A05 may invoke even when their name looks destructive
+	// (delete/remove/...). Empty means no destructive mutation is ever invoked.
+	AllowedMutations []string `mapstructure:"allowed_authz_mutations"`
 	// AuthzSeeds maps a root object-fetcher field name to a known object id owned
 	// by a privileged identity, used to seed object-level authz tests (GQL-A01).
 	// When absent for a fetcher, the check attempts to self-discover an id.
@@ -181,6 +185,15 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	// stable map case keeps callers simple.)
 	canonicalizeIdentityHeaders(cfg.Identities)
 	cfg.Identities = dedupeIdentities(cfg.Identities)
+
+	// --authz-allow-mutation is a string-slice flag naming individual mutations
+	// GQL-A05 may invoke even if their name looks destructive. Flag values are
+	// appended to any from the config file.
+	if fl := cmd.Flags().Lookup("authz-allow-mutation"); fl != nil {
+		if vals, err := cmd.Flags().GetStringArray("authz-allow-mutation"); err == nil && len(vals) > 0 {
+			cfg.AllowedMutations = append(cfg.AllowedMutations, vals...)
+		}
+	}
 
 	// --authz-seed is a string-slice flag (e.g. 'user.id=42' or 'user=42') that
 	// seeds known object ids for object-level authz tests. Flag values are merged

@@ -402,8 +402,9 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-A02 | Broken Function Level Authorization (BFLA) | CRITICAL | Authorization |
 | GQL-A03 | Field-Level Authorization (BOPLA / Excessive Data Exposure) | HIGH | Authorization |
 | GQL-A04 | Cross-Tenant Isolation Failure | CRITICAL | Authorization |
+| GQL-A05 | Mutation-Side Authorization (Non-Owner Write/Delete) | CRITICAL | Authorization |
 
-GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03/A04 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01/A02/A03/A04 additionally require operator-supplied [identities](#authorization-identities) and are skipped otherwise (GQL-A02 needs differing privilege; GQL-A04 needs two identities in different `tenant`s). GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones.
+GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03/A04/A05 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01–A05 additionally require operator-supplied [identities](#authorization-identities) and are skipped otherwise (GQL-A02 needs differing privilege; GQL-A04 needs two identities in different `tenant`s). GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones. **GQL-A05 is disabled by default**: it performs state-changing requests, so it runs only with `--authz-allow-mutations`, tests only non-destructive update-style mutations (destructive-named ones require an explicit `--authz-allow-mutation <name>`), and uses a capture→write→verify→restore cycle that restores the original value.
 
 **Run a subset of checks**
 

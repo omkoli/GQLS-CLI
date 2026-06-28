@@ -28,8 +28,19 @@ func newAuthzTestCmd() *cobra.Command {
 	cmd.Flags().String("config", "", "")
 	cmd.Flags().StringArray("identity", nil, "")
 	cmd.Flags().Bool("authz-allow-mutations", false, "")
+	cmd.Flags().StringArray("authz-allow-mutation", nil, "")
 	cmd.Flags().StringArray("authz-seed", nil, "")
 	return cmd
+}
+
+func TestLoad_AllowedMutationsFlag(t *testing.T) {
+	cmd := newAuthzTestCmd()
+	require.NoError(t, cmd.Flags().Set("authz-allow-mutation", "deleteUser"))
+	require.NoError(t, cmd.Flags().Set("authz-allow-mutation", "purgeAccount"))
+
+	cfg, err := Load(viper.New(), cmd)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"deleteUser", "purgeAccount"}, cfg.AllowedMutations)
 }
 
 func TestParseSeedFlag(t *testing.T) {

@@ -63,6 +63,7 @@ func newScanCmd() *cobra.Command {
 	cmd.Flags().String("curl-file", "", "Path to a file containing a raw curl command (Bash or CMD multiline format)")
 	cmd.Flags().StringArray("identity", nil, "Authorization-testing identity in 'name=userA;priv=10;tenant=t1;header=Authorization: Bearer X' format (repeatable)")
 	cmd.Flags().Bool("authz-allow-mutations", false, "Allow authorization checks to send state-changing requests (e.g. GQL-A05); off by default")
+	cmd.Flags().StringArray("authz-allow-mutation", nil, "Allow GQL-A05 to invoke a specific (even destructive-named) mutation by name (repeatable)")
 	cmd.Flags().StringArray("authz-seed", nil, "Seed a known object id for object-level authz tests in 'field=id' format, e.g. 'user.id=42' (repeatable)")
 
 	return cmd
@@ -183,6 +184,7 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		Identities:            identities,
 		AllowMutations:        cfg.AllowAuthzMutations,
 		AuthzSeeds:            cfg.AuthzSeeds,
+		AllowedMutations:      cfg.AllowedMutations,
 	}
 
 	for _, chk := range selectedChecks {
