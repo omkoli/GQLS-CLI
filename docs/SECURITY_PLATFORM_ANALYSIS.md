@@ -127,7 +127,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 
 | Proposed ID | Check | Reference | Have? | Sev | Cx | Pri |
 |---|---|---|---|---|---|---|
-| GQL-M01 | **Server engine fingerprinting** (graphw00f-style: Apollo, graphql-ruby, Hasura, HotChocolate, Graphene, gqlgen, Lighthouse, Yoga, Strawberry, Ariadne…) | graphw00f | ❌ | INFO | M | **P0** |
+| GQL-M01 | **Server engine fingerprinting** (graphw00f-style: Apollo, graphql-ruby, Hasura, HotChocolate, Graphene, gqlgen, Lighthouse, Yoga, Strawberry, Ariadne…) | graphw00f | ✅ (implemented) | INFO | M | **P0** |
 | GQL-M02 | **Engine-specific known-CVE mapping** once fingerprinted | — | ❌ | varies | M | P1 |
 | GQL-M03 | **Trace/`extensions` leakage taxonomy** — Apollo tracing, `extensions.exception.stacktrace`, timing metadata | OWASP CS | partial (005) | MED | L | P1 |
 | GQL-M04 | **Introspection via GET / alternative content-types** when POST introspection is blocked | PortSwigger | ❌ | MED | L | P1 |
@@ -359,7 +359,7 @@ These are the moat-builders. Honest difficulty ratings included.
 | Capability | Competitors (Burp+InQL / Escape / Inigo / StackHawk / graphql-cop / clairvoyance / graphw00f) | gqls **has** | gqls **should build** | gqls **differentiator potential** |
 |---|---|---|---|---|
 | Endpoint discovery | ✅ most | ✅ (13-path concurrent) | GET/`.well-known`/HAR-seeded | Deterministic, parallel, transparent |
-| Engine fingerprinting | ✅ graphw00f, Escape | ❌ | **GQL-M01/M02** | — (must catch up) |
+| Engine fingerprinting | ✅ graphw00f, Escape | ✅ (GQL-M01) | GQL-M02 CVE map | At parity (graphw00f-style discriminators) |
 | Introspection + bypass | ✅ all | ✅ / 🟡 bypass | introspection-via-GET, whitespace bypass | — |
 | **Blind schema recovery (suggestions)** | clairvoyance, Escape | ✅ **harvester** | report reconstructed SDL | **Yes — already strong; few CLIs do this** |
 | Depth/complexity DoS | ✅ most | ✅ | alias/dup/circular/directive | Structural (non-latency) detection |

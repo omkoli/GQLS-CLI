@@ -407,6 +407,9 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-A07 | GraphQL CSRF (State Change via GET / Simple Content-Type) | HIGH | Authorization |
 | GQL-A08 | JWT Authentication-Token Weaknesses | HIGH | Authorization |
 | GQL-A09 | Subscription Authorization Bypass (WebSocket) | HIGH | Authorization |
+| GQL-M01 | GraphQL Engine Fingerprint | INFO | InformationDisclosure |
+
+GQL-M01 needs no identities or schema. It identifies the backing GraphQL engine (Apollo, Hasura, graphql-ruby, HotChocolate, AWS AppSync, …) from a few discriminator probes and always emits an INFO finding (the engine, or "not identified" — never a false attribution); the result is reconnaissance context that other checks can build on.
 
 GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03/A04/A05 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01–A05 additionally require operator-supplied [identities](#authorization-identities) and are skipped otherwise (GQL-A02 needs differing privilege; GQL-A04 needs two identities in different `tenant`s). GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones. **GQL-A05 is disabled by default**: it performs state-changing requests, so it runs only with `--authz-allow-mutations`, tests only non-destructive update-style mutations (destructive-named ones require an explicit `--authz-allow-mutation <name>`), and uses a capture→write→verify→restore cycle that restores the original value.
 
