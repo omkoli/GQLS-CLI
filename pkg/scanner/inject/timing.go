@@ -28,19 +28,24 @@ type TimingResult struct {
 // control median by more than k control-MADs.
 const timingK = 3.0
 
-// timingFloor is the absolute minimum delta required, independent of jitter, so
-// a tiny-but-consistent difference never reports an effect. It is tuned for the
-// multi-second sleeps used by time-based injection payloads.
-const timingFloor = 2500 * time.Millisecond
+// DefaultTimingFloor is the absolute minimum delta required, independent of
+// jitter, so a tiny-but-consistent difference never reports an effect. It is
+// tuned for the multi-second sleeps used by time-based injection payloads (≥2.5s
+// for a 5s SLEEP). Callers pass their own floor matched to their injected delay
+// (e.g. half the sleep duration); a non-positive floor selects this default.
+const DefaultTimingFloor = 2500 * time.Millisecond
 
 // TimingOracle interleaves up to `samples` control and payload measurements
 // (default 7) and reports an effect only when the payload branch is robustly
 // slower: payloadMedian > controlMedian + k·controlMAD AND the absolute delta
-// exceeds timingFloor. Interleaving cancels slow drift; the median+MAD test
-// rejects jitter. It aborts early on ctx cancellation.
-func TimingOracle(ctx context.Context, control, payload Sampler, samples int) TimingResult {
+// exceeds floor (DefaultTimingFloor when floor <= 0). Interleaving cancels slow
+// drift; the median+MAD test rejects jitter. It aborts early on ctx cancellation.
+func TimingOracle(ctx context.Context, control, payload Sampler, samples int, floor time.Duration) TimingResult {
 	if samples <= 0 {
 		samples = 7
+	}
+	if floor <= 0 {
+		floor = DefaultTimingFloor
 	}
 	var controls, payloads []time.Duration
 	for i := 0; i < samples; i++ {
@@ -72,7 +77,7 @@ func TimingOracle(ctx context.Context, control, payload Sampler, samples int) Ti
 		return res
 	}
 	threshold := cm + time.Duration(timingK*float64(mad))
-	res.Effect = pm > threshold && (pm-cm) >= timingFloor
+	res.Effect = pm > threshold && (pm-cm) >= floor
 	return res
 }
 
