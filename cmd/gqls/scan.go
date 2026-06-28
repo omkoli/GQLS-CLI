@@ -66,6 +66,7 @@ func newScanCmd() *cobra.Command {
 	cmd.Flags().StringArray("authz-allow-mutation", nil, "Allow GQL-A05 to invoke a specific (even destructive-named) mutation by name (repeatable)")
 	cmd.Flags().StringArray("authz-seed", nil, "Seed a known object id for object-level authz tests in 'field=id' format, e.g. 'user.id=42' (repeatable)")
 	cmd.Flags().String("authz-login-op", "", "Authentication operation for the alias auth-bypass check (GQL-A06), e.g. 'login' or 'login(email: \"x\", password: \"y\")'")
+	cmd.Flags().String("ws-url", "", "WebSocket endpoint for the subscription authz check (GQL-A09); defaults to the target URL with http→ws / https→wss")
 
 	return cmd
 }
@@ -188,6 +189,7 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		AllowedMutations:      cfg.AllowedMutations,
 		AuthzLoginOp:          cfg.AuthzLoginOp,
 		Headers:               resolvedHeaders,
+		WSURL:                 cfg.WSURL,
 	}
 
 	for _, chk := range selectedChecks {
