@@ -83,7 +83,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ✅ (implemented) | CRIT | H | P1 |
 | GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ✅ (implemented) | CRIT | H | P1 |
 | GQL-A06 | **Auth via aliases / batching bypass** — rate-limit / brute-force protection bypass by aliasing `login` N times in one request | API4 / CWE-307 | ✅ (implemented) | HIGH | M | **P0** |
-| GQL-A07 | **GraphQL CSRF** — state-changing operation accepted via GET or `Content-Type: text/plain`/`application/x-www-form-urlencoded` without CSRF token | API8 / CWE-352 | ❌ | HIGH | L | **P0** |
+| GQL-A07 | **GraphQL CSRF** — state-changing operation accepted via GET or `Content-Type: text/plain`/`application/x-www-form-urlencoded` without CSRF token | API8 / CWE-352 | ✅ (implemented) | HIGH | L | **P0** |
 | GQL-A08 | **JWT weaknesses** — `alg:none`, weak secret, missing `exp`, `kid` injection on the auth token | CWE-347 | ❌ | HIGH | M | P1 |
 | GQL-A09 | **Subscription authz** — WebSocket subscriptions bypassing the authz applied to queries | API5 | ❌ | HIGH | H | P2 |
 
@@ -188,7 +188,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | Don't leak errors/stack traces | ✅ (005) |
 | Enforce authorization on every resolver | ❌ |
 | Validate & sanitize input (injection) | 🟡 (011 error-SQLi only) |
-| CSRF protection | ❌ |
+| CSRF protection | ✅ (A07) |
 | Don't allow GET for mutations | 🟡 (010 detects GET queries; not mutation-CSRF) |
 
 ### 3.3 vs PortSwigger GraphQL Academy labs
@@ -201,7 +201,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | Field suggestions to reconstruct blind schema | 🟡 |
 | **Bypassing rate limits using aliases** | ✅ (A06) |
 | **Bypassing brute-force protection via aliases/batching** | ✅ (A06) |
-| GraphQL CSRF | ❌ |
+| GraphQL CSRF | ✅ (A07) |
 | Accessing private data via unguarded fields | ❌ |
 
 > The single most-cited PortSwigger GraphQL attack — **alias-based brute-force / rate-limit bypass** — is
