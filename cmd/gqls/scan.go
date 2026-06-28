@@ -187,6 +187,7 @@ func runScan(cmd *cobra.Command, _ []string) error {
 		AuthzSeeds:            cfg.AuthzSeeds,
 		AllowedMutations:      cfg.AllowedMutations,
 		AuthzLoginOp:          cfg.AuthzLoginOp,
+		Headers:               resolvedHeaders,
 	}
 
 	for _, chk := range selectedChecks {

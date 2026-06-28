@@ -109,6 +109,11 @@ type CheckContext struct {
 	// the alias auth-bypass check (GQL-A06) tests. Empty means auto-discover from
 	// the schema.
 	AuthzLoginOp string
+	// Headers holds the fully-resolved request headers carried by HTTPClient
+	// (curl-file + --header values, env-expanded). It lets checks inspect the
+	// configured credentials — e.g. the JWT check (GQL-A08) reads the bearer
+	// token from here. May be nil.
+	Headers map[string]string
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,
