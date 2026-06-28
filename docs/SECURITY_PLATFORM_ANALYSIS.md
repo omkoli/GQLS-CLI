@@ -82,7 +82,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | GQL-A03 | **BOPLA / field-level authz** — sensitive fields (`email`, `ssn`, `isAdmin`) returned to under-privileged roles even when object access is intended | API3 / CWE-213 | ✅ (implemented) | HIGH | H | **P0** |
 | GQL-A04 | **Cross-tenant isolation** — tenant A reaching tenant B data via ID/tenant header manipulation | API1 | ✅ (implemented) | CRIT | H | P1 |
 | GQL-A05 | **Mutation-side authz** — can a non-owner *update/delete* an object (not just read) | API5 | ✅ (implemented) | CRIT | H | P1 |
-| GQL-A06 | **Auth via aliases / batching bypass** — rate-limit / brute-force protection bypass by aliasing `login` N times in one request | API4 / CWE-307 | ❌ (009 is generic batch) | HIGH | M | **P0** |
+| GQL-A06 | **Auth via aliases / batching bypass** — rate-limit / brute-force protection bypass by aliasing `login` N times in one request | API4 / CWE-307 | ✅ (implemented) | HIGH | M | **P0** |
 | GQL-A07 | **GraphQL CSRF** — state-changing operation accepted via GET or `Content-Type: text/plain`/`application/x-www-form-urlencoded` without CSRF token | API8 / CWE-352 | ❌ | HIGH | L | **P0** |
 | GQL-A08 | **JWT weaknesses** — `alg:none`, weak secret, missing `exp`, `kid` injection on the auth token | CWE-347 | ❌ | HIGH | M | P1 |
 | GQL-A09 | **Subscription authz** — WebSocket subscriptions bypassing the authz applied to queries | API5 | ❌ | HIGH | H | P2 |
@@ -199,8 +199,8 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | Introspection (and `__schema`/`__type` probing) | ✅ |
 | Bypassing introspection defenses (whitespace/`\n` after `__schema`) | ❌ |
 | Field suggestions to reconstruct blind schema | 🟡 |
-| **Bypassing rate limits using aliases** | ❌ |
-| **Bypassing brute-force protection via aliases/batching** | ❌ |
+| **Bypassing rate limits using aliases** | ✅ (A06) |
+| **Bypassing brute-force protection via aliases/batching** | ✅ (A06) |
 | GraphQL CSRF | ❌ |
 | Accessing private data via unguarded fields | ❌ |
 

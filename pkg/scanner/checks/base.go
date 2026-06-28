@@ -105,6 +105,10 @@ type CheckContext struct {
 	// mutation-side authz check (GQL-A05) may invoke even when their name looks
 	// destructive. Empty means destructive-named mutations are never invoked.
 	AllowedMutations []string
+	// AuthzLoginOp names (or fully specifies) the authentication-style operation
+	// the alias auth-bypass check (GQL-A06) tests. Empty means auto-discover from
+	// the schema.
+	AuthzLoginOp string
 }
 
 // ProbeClient returns the client that probing checks (GQL-002 through GQL-010,

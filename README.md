@@ -403,8 +403,11 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-A03 | Field-Level Authorization (BOPLA / Excessive Data Exposure) | HIGH | Authorization |
 | GQL-A04 | Cross-Tenant Isolation Failure | CRITICAL | Authorization |
 | GQL-A05 | Mutation-Side Authorization (Non-Owner Write/Delete) | CRITICAL | Authorization |
+| GQL-A06 | Auth Bypass via Aliases (Rate-Limit/Brute-Force Bypass) | HIGH | Authorization |
 
 GQL-006, GQL-007/GQL-008/GQL-012, GQL-D05, and GQL-A01/A02/A03/A04/A05 require a retrievable schema; they are skipped automatically when schema extraction fails. GQL-A01–A05 additionally require operator-supplied [identities](#authorization-identities) and are skipped otherwise (GQL-A02 needs differing privilege; GQL-A04 needs two identities in different `tenant`s). GQL-A02 only probes privileged mutations when `--authz-allow-mutations` is set, and never invokes destructive ones. **GQL-A05 is disabled by default**: it performs state-changing requests, so it runs only with `--authz-allow-mutations`, tests only non-destructive update-style mutations (destructive-named ones require an explicit `--authz-allow-mutation <name>`), and uses a capture→write→verify→restore cycle that restores the original value.
+
+GQL-A06 needs no identities. It tests an authentication-style operation (auto-discovered from the schema, e.g. `login`/`signin`/`verifyOtp`, or specified with `--authz-login-op`) by aliasing it 20× in one request with clearly-invalid, non-existent credentials; it is skipped when no such operation can be found.
 
 **Run a subset of checks**
 

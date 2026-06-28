@@ -52,6 +52,10 @@ type ScanConfig struct {
 	// by a privileged identity, used to seed object-level authz tests (GQL-A01).
 	// When absent for a fetcher, the check attempts to self-discover an id.
 	AuthzSeeds map[string]string `mapstructure:"authz_seeds"`
+	// AuthzLoginOp names (or fully specifies) the authentication-style operation
+	// the alias auth-bypass check (GQL-A06) should test, e.g. "login" or
+	// `login(email: "x", password: "y")`. Empty means auto-discover from the schema.
+	AuthzLoginOp string `mapstructure:"authz_login_op"`
 
 	// CurlBody is the raw request body extracted from a --curl / --curl-file
 	// input. It is not loaded from config files or environment variables; it
@@ -121,6 +125,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	_ = v.BindEnv("timeout", "GQLS_TIMEOUT")
 	_ = v.BindEnv("rate_limit", "GQLS_RATE_LIMIT")
 	_ = v.BindEnv("allow_authz_mutations", "GQLS_ALLOW_AUTHZ_MUTATIONS")
+	_ = v.BindEnv("authz_login_op", "GQLS_AUTHZ_LOGIN_OP")
 
 	// 4. CLI flags (highest precedence)
 	bindFlag(v, cmd, "url", "url")
@@ -131,6 +136,7 @@ func Load(v *viper.Viper, cmd *cobra.Command) (*ScanConfig, error) {
 	bindFlag(v, cmd, "timeout", "timeout")
 	bindFlag(v, cmd, "rate_limit", "rate-limit")
 	bindFlag(v, cmd, "allow_authz_mutations", "authz-allow-mutations")
+	bindFlag(v, cmd, "authz_login_op", "authz-login-op")
 
 	cfg := &ScanConfig{}
 	if err := v.Unmarshal(cfg); err != nil {
