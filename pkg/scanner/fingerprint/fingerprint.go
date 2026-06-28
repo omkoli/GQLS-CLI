@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/gqls-cli/gqls/pkg/transport"
@@ -256,4 +257,65 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+// ── version resolution (safe, non-exploitative) ──────────────────────────────
+
+// engineHeaderTokens maps an engine name to lowercase substrings that, when
+// present in a response-header value, indicate an accompanying version number
+// belongs to that engine. Requiring an engine token to co-occur with the
+// version avoids mis-attributing an unrelated component's version (e.g.
+// "Server: nginx/1.21.0") to the GraphQL engine.
+var engineHeaderTokens = map[string][]string{
+	"Apollo Server": {"apollo"},
+	"graphql-js":    {"graphql", "apollo", "yoga", "express-graphql"},
+	"graphql-ruby":  {"graphql-ruby", "graphql"},
+	"HotChocolate":  {"hotchocolate", "hot chocolate"},
+	"Hasura":        {"hasura"},
+	"graphql-core":  {"graphql-core", "graphene", "ariadne", "strawberry"},
+	"gqlgen":        {"gqlgen"},
+	"AWS AppSync":   {"appsync"},
+}
+
+// versionRe matches a dotted version number (MAJOR.MINOR[.PATCH]).
+var versionRe = regexp.MustCompile(`\d+\.\d+(?:\.\d+)?`)
+
+// VersionFromHeaders attempts to resolve the engine's version from response
+// headers without sending any exploit payload. It scans header values for one
+// that references the engine (per engineHeaderTokens) and carries a version
+// number — e.g. "Server: Apollo/2.25.3" or "X-Powered-By: graphql-ruby 2.0.30".
+// It returns the version and the originating header name, or ("","") when no
+// version can be safely attributed. Header iteration is deterministic.
+func VersionFromHeaders(engine string, h http.Header) (version, source string) {
+	if h == nil {
+		return "", ""
+	}
+	tokens := engineHeaderTokens[engine]
+	if len(tokens) == 0 {
+		return "", ""
+	}
+	names := make([]string, 0, len(h))
+	for name := range h {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		for _, val := range h[name] {
+			lower := strings.ToLower(val)
+			matched := false
+			for _, tok := range tokens {
+				if strings.Contains(lower, tok) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+			if v := versionRe.FindString(val); v != "" {
+				return v, name
+			}
+		}
+	}
+	return "", ""
 }
