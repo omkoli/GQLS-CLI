@@ -144,7 +144,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 | GQL-B01 | **Unrestricted access to sensitive business flows** (signup/coupon/transfer abuse via batch+alias) | API6 | ✅ (implemented) | HIGH | H | P2 |
 | GQL-B02 | **Mass assignment via input objects** — setting `isAdmin`, `role`, `verified` through mutation inputs | API3 / CWE-915 | ✅ (implemented) | HIGH | M | P1 |
 | GQL-B03 | **Race conditions** (parallel mutations: double-spend, coupon reuse) | CWE-362 | ✅ (implemented) | HIGH | H | P3 |
-| GQL-B04 | **Enumeration via differential errors** (valid vs invalid user/email timing & message diffs) | API1 | ❌ | MED | M | P2 |
+| GQL-B04 | **Enumeration via differential errors** (valid vs invalid user/email timing & message diffs) | API1 | ✅ (implemented) | MED | M | P2 |
 
 **Bottom line for §2:** you have ~12 checks covering the lowest-difficulty band. A credible commercial
 GraphQL scanner needs **40–60 checks**, and the *weighted value* sits almost entirely in §2.1 (authz),
@@ -160,7 +160,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 
 | OWASP API risk | gqls today | Gap severity |
 |---|---|---|
-| API1 — Broken Object Level Authorization (BOLA) | ✅ (A01 BOLA/IDOR + A04 cross-tenant) | **Low** — object-id IDOR and cross-tenant isolation both covered |
+| API1 — Broken Object Level Authorization (BOLA) | ✅ (A01 BOLA/IDOR + A04 cross-tenant + B04 user enumeration) | **Low** — object-id IDOR, cross-tenant isolation, and identifier enumeration all covered |
 | API2 — Broken Authentication | 🟡 (012 unauth mutations; A06 alias brute-force; A08 JWT weaknesses) | Medium — JWT + alias brute-force covered; no session/OAuth-flow testing |
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | ✅ (A03 sensitive-field exposure + B02 mass assignment; 006 flags schema fields) | **Low** — both field-read authz and write-side mass assignment covered |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |
