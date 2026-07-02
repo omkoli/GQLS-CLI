@@ -424,6 +424,7 @@ gqls scan --url https://api.example.com/graphql --output sarif --output-file res
 | GQL-I06 | Cross-Site Scripting (Reflected/Stored via GraphQL) | MEDIUM | Injection |
 | GQL-I07 | ORM/GraphQL Operator Injection | HIGH | Injection |
 | GQL-I08 | LDAP / XML / Template Injection | HIGH | Injection |
+| GQL-B01 | Unrestricted Access to Sensitive Business Flows | HIGH | BusinessLogic |
 
 GQL-M01 needs no identities or schema. It identifies the backing GraphQL engine (Apollo, Hasura, graphql-ruby, HotChocolate, AWS AppSync, …) from a few discriminator probes and always emits an INFO finding (the engine, or "not identified" — never a false attribution); the result is reconnaissance context that other checks can build on.
 
@@ -468,6 +469,8 @@ GQL-A07 needs no identities or schema. It sends a non-mutating `{ __typename }` 
 GQL-A08 needs no identities or schema, but does require a JWT bearer token to be supplied (via `--header 'Authorization: Bearer <jwt>'`, `--identity`, or a curl command). It tamper-tests that token for `alg:none` acceptance, weak/guessable HMAC secrets, missing/excessive `exp`, and `kid` injection, using an auth-gated baseline plus a garbage-token negative control to confirm acceptance. The genuine token and signatures are never written to output.
 
 GQL-A09 requires a schema exposing a subscription type. It connects to the GraphQL WebSocket endpoint (derived from the target as `http→ws` / `https→wss`, or set with `--ws-url`) using the `graphql-transport-ws` / `graphql-ws` subprotocol, and flags when a subscription streams data to an anonymous client whose HTTP-equivalent query is denied. Subscriptions are always closed promptly and wait windows are bounded.
+
+**GQL-B01 is disabled by default**: it performs state-changing (business-flow) requests, so it runs only with `--authz-allow-mutations`. Where GQL-A06 targets *authentication* throttling, B01 targets *business-flow* throttling (OWASP API6:2023 / CWE-799). It requires a schema, identifies up to two sensitive-flow mutations by name (`redeem`/`coupon`/`signup`/`invite`/`vote`/`transfer`/…, destructive-named ones excluded unless allow-listed via `--authz-allow-mutation`), and sends **one request aliasing the flow 20×** — every alias performing the *same* logical action with a **bogus, non-existent probe identifier** so a "success" reflects missing server-side validation and per-actor/per-key limiting, not real value transfer. It fires a HIGH finding when all 20 aliased executions succeed with no duplicate/limit rejection (`firm`), upgraded to `confirmed` when a numeric effect field — a credited balance or redemption count — climbs monotonically across the aliases, showing the effect persisted N×. A server that enforces one-per-key (1 success + 19 "already redeemed") produces no finding. The alias count is bounded well below DoS, and cleanup status is reported.
 
 **Run a subset of checks**
 

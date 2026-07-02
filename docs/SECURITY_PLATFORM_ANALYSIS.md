@@ -141,7 +141,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 
 | Proposed ID | Check | OWASP | Have? | Sev | Cx | Pri |
 |---|---|---|---|---|---|---|
-| GQL-B01 | **Unrestricted access to sensitive business flows** (signup/coupon/transfer abuse via batch+alias) | API6 | ❌ | HIGH | H | P2 |
+| GQL-B01 | **Unrestricted access to sensitive business flows** (signup/coupon/transfer abuse via batch+alias) | API6 | ✅ (implemented) | HIGH | H | P2 |
 | GQL-B02 | **Mass assignment via input objects** — setting `isAdmin`, `role`, `verified` through mutation inputs | API3 / CWE-915 | ❌ | HIGH | M | P1 |
 | GQL-B03 | **Race conditions** (parallel mutations: double-spend, coupon reuse) | CWE-362 | ❌ | HIGH | H | P3 |
 | GQL-B04 | **Enumeration via differential errors** (valid vs invalid user/email timing & message diffs) | API1 | ❌ | MED | M | P2 |
@@ -165,7 +165,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | 🟡 (A03 tests sensitive-field *exposure to wrong role*; 006 flags schema fields) | **Medium** — field-authz covered; mass assignment (B02) still open |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |
 | API5 — Broken Function Level Authorization (BFLA) | ✅ (A02 BFLA + A05 mutation-side authz + A09 subscription authz) | **Low** — function-, mutation-, and subscription-side authz all covered |
-| API6 — Unrestricted Access to Sensitive Business Flows | ❌ | High |
+| API6 — Unrestricted Access to Sensitive Business Flows | 🟡 (B01 batch/alias flow-multiplicity abuse) | Medium — single-request flow multiplicity covered; race-condition (B03) abuse still open |
 | API7 — SSRF | ❌ | High |
 | API8 — Security Misconfiguration | 🟡 (001/004/005/010) | Medium — missing CSRF/CORS/headers |
 | API9 — Improper Inventory Management | 🟡 (endpoint discovery) | Medium — no env/version/deprecated-API inventory |
