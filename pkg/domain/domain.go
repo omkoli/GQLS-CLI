@@ -83,6 +83,10 @@ const (
 	Authorization Category = "Authorization"
 	// Injection covers checks that detect injection-style vulnerabilities.
 	Injection Category = "Injection"
+	// BusinessLogic covers checks that detect abuse of sensitive business flows
+	// (unrestricted flow multiplicity/quantity limits, race conditions, and
+	// related logic-abuse weaknesses).
+	BusinessLogic Category = "BusinessLogic"
 )
 
 // Finding represents a single security issue discovered by a check.

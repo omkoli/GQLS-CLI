@@ -46,6 +46,7 @@ const (
 	Authentication        = domain.Authentication
 	Authorization         = domain.Authorization
 	Injection             = domain.Injection
+	BusinessLogic         = domain.BusinessLogic
 )
 
 // ParseSeverity delegates to domain.ParseSeverity.
