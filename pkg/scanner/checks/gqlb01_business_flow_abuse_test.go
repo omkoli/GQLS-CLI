@@ -158,7 +158,7 @@ func TestBizFlow_VulnerableConfirmed(t *testing.T) {
 		t.Fatalf("fingerprint/probe count wrong: fp=%q probes=%d", f.Fingerprint, res.ProbeCount)
 	}
 	// The probe must use a bogus, non-valuable identifier (never a real coupon).
-	if !strings.Contains(string(f.ReproBody), "gqls-b01-") {
+	if !strings.Contains(string(f.ReproBody), "gqls-probe-") {
 		t.Fatalf("expected a bogus probe identifier in the request: %s", f.ReproBody)
 	}
 	if bs.mutations.Load() != 1 {

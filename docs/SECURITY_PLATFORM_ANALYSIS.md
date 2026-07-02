@@ -143,7 +143,7 @@ reflects the current code. Priority is P0 (build now) → P3 (later). Complexity
 |---|---|---|---|---|---|---|
 | GQL-B01 | **Unrestricted access to sensitive business flows** (signup/coupon/transfer abuse via batch+alias) | API6 | ✅ (implemented) | HIGH | H | P2 |
 | GQL-B02 | **Mass assignment via input objects** — setting `isAdmin`, `role`, `verified` through mutation inputs | API3 / CWE-915 | ✅ (implemented) | HIGH | M | P1 |
-| GQL-B03 | **Race conditions** (parallel mutations: double-spend, coupon reuse) | CWE-362 | ❌ | HIGH | H | P3 |
+| GQL-B03 | **Race conditions** (parallel mutations: double-spend, coupon reuse) | CWE-362 | ✅ (implemented) | HIGH | H | P3 |
 | GQL-B04 | **Enumeration via differential errors** (valid vs invalid user/email timing & message diffs) | API1 | ❌ | MED | M | P2 |
 
 **Bottom line for §2:** you have ~12 checks covering the lowest-difficulty band. A credible commercial
@@ -165,7 +165,7 @@ Legend: ✅ covered · 🟡 partial · ❌ missing.
 | API3 — Broken Object Property Level Authz (BOPLA/excessive data + mass assignment) | ✅ (A03 sensitive-field exposure + B02 mass assignment; 006 flags schema fields) | **Low** — both field-read authz and write-side mass assignment covered |
 | API4 — Unrestricted Resource Consumption | 🟡 (007/008/009) | Medium — missing alias/dup/SSRF-cost vectors |
 | API5 — Broken Function Level Authorization (BFLA) | ✅ (A02 BFLA + A05 mutation-side authz + A09 subscription authz) | **Low** — function-, mutation-, and subscription-side authz all covered |
-| API6 — Unrestricted Access to Sensitive Business Flows | 🟡 (B01 batch/alias flow-multiplicity abuse) | Medium — single-request flow multiplicity covered; race-condition (B03) abuse still open |
+| API6 — Unrestricted Access to Sensitive Business Flows | ✅ (B01 batch/alias flow-multiplicity + B03 parallel-race abuse) | **Low** — single-request multiplicity and parallel TOCTOU both covered |
 | API7 — SSRF | ❌ | High |
 | API8 — Security Misconfiguration | 🟡 (001/004/005/010) | Medium — missing CSRF/CORS/headers |
 | API9 — Improper Inventory Management | 🟡 (endpoint discovery) | Medium — no env/version/deprecated-API inventory |

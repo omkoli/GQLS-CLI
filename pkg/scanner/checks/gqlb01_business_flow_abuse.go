@@ -370,11 +370,13 @@ func buildBizArgs(s *schema.Schema, m *schema.FieldDef, code string) (string, bo
 // bizProbeValue returns a bogus, non-existent probe identifier for an argument.
 // Email/username-like arguments get an @invalid.example address so a "success"
 // against them clearly reflects missing validation, not real value transfer.
+// The "gqls-probe-" prefix is shared by the business-flow checks (B01/B03) so a
+// "success" always traces back to a non-valuable synthetic identifier.
 func bizProbeValue(argName, code string) string {
 	if credEmailRe.MatchString(argName) {
-		return "gqls-b01-" + code + "@invalid.example"
+		return "gqls-probe-" + code + "@invalid.example"
 	}
-	return "gqls-b01-" + code
+	return "gqls-probe-" + code
 }
 
 // bizSelection returns the selection-set suffix for a mutation's return type and
